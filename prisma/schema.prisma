@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String
+  password      String?
+  name          String?
+  surname       String?
+  birthDate     DateTime?     @db.Date
+  sex           String?
+  imageUrl      String?       @default("")
+  acceptedTerms Boolean       @default(true)
+  token         String?
+  updateDate    DateTime      @default(now())
+  createdDate   DateTime      @default(now())
+  category      Category[]
+  bankAccount   BankAccount[]
+  cardAccount   CardAccount[]
+  transaction   Transaction[]
+}
+
+model Color {
+  id          Int           @id @default(autoincrement())
+  hexCode     String
+  updateDate  DateTime      @default(now())
+  createdDate DateTime      @default(now())
+  category    Category[]
+  bankAccount BankAccount[]
+}
+
+model CategoryIcon {
+  id          Int        @id @default(autoincrement())
+  iconName    String
+  updateDate  DateTime   @default(now())
+  createdDate DateTime   @default(now())
+  Category    Category[]
+}
+
+model BankType {
+  id          Int           @id @default(autoincrement())
+  name        String
+  imageUrl    String        @default("")
+  updateDate  DateTime      @default(now())
+  createdDate DateTime      @default(now())
+  bankAccount BankAccount[]
+}
+
+model BankAccountType {
+  id          Int           @id @default(autoincrement())
+  name        String
+  updateDate  DateTime      @default(now())
+  createdDate DateTime      @default(now())
+  bankAccount BankAccount[]
+}
+
+model CardType {
+  id          Int           @id @default(autoincrement())
+  name        String
+  imageUrl    String        @default("")
+  updateDate  DateTime      @default(now())
+  createdDate DateTime      @default(now())
+  cardAccount CardAccount[]
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String
+  type          String
+  updateDate    DateTime      @default(now())
+  createdDate   DateTime      @default(now())
+  createdBy     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  categoryColor Color         @relation(fields: [colorId], references: [id])
+  colorId       Int
+  CategoryIcon  CategoryIcon? @relation(fields: [iconId], references: [id])
+  iconId        Int?
+  Transaction   Transaction[]
+}
+
+model BankAccount {
+  id                Int              @id @default(autoincrement())
+  name              String
+  startingBalance   Float
+  updateDate        DateTime         @default(now())
+  createdDate       DateTime         @default(now())
+  createdBy         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            Int
+  Color             Color?           @relation(fields: [colorId], references: [id])
+  colorId           Int?
+  BankType          BankType?        @relation(fields: [bankTypeId], references: [id])
+  bankTypeId        Int?
+  BankAccountType   BankAccountType? @relation(fields: [bankAccountTypeId], references: [id])
+  bankAccountTypeId Int?
+  cardAccount       CardAccount[]
+  Transaction       Transaction[]
+}
+
+model CardAccount {
+  id            Int           @id @default(autoincrement())
+  name          String
+  cardLimit     Float
+  monthExpiry   Int
+  yearExpiry    Int
+  updateDate    DateTime      @default(now())
+  createdDate   DateTime      @default(now())
+  createdBy     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  BankAccount   BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  bankAccountId Int?
+  CardType      CardType?     @relation(fields: [cardTypeId], references: [id])
+  cardTypeId    Int?
+  Transaction   Transaction[]
+}
+
+model Transaction {
+  id            Int          @id @default(autoincrement())
+  money         Float
+  recived       Boolean      @default(false)
+  date          DateTime     @db.Date
+  description   String
+  recurrent     Boolean
+  repeat        Boolean
+  note          String
+  type          String
+  updateDate    DateTime     @default(now())
+  createdDate   DateTime     @default(now())
+  createdBy     User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int?
+  BankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  bankAccountId Int?
+  Category      Category     @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  Card          CardAccount? @relation(fields: [cardAccountId], references: [id])
+  cardAccountId Int?
+}

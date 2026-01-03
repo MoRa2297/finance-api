@@ -1,0 +1,28 @@
+cat > .gitignore << 'EOF'
+# Dependencies
+node_modules
+
+# Build
+dist
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+
+# Prisma
+generated/prisma
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage
+EOF
