@@ -1,33 +1,26 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma';
-import {ChangePasswordDto, LoginDto, RegisterDto, UpdateDto} from './dto';
+import { RegisterDto, LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto';
+import { AUTH_CONSTANTS } from './constants/auth.constants';
+import { AuthResponse, UserWithoutPassword, MessageResponse, JwtPayload } from './types';
+import { hashPassword, comparePassword, excludePassword } from './helpers';
 
 @Injectable()
 export class AuthService {
     constructor(
-        private prisma: PrismaService,
-        private jwtService: JwtService,
+        private readonly prisma: PrismaService,
+        private readonly jwtService: JwtService,
     ) {}
 
     /**
      * Register a new user.
      */
-    async register(dto: RegisterDto) {
-        // Check if user already exists
-        const existingUser = await this.prisma.user.findFirst({
-            where: { email: dto.email },
-        });
+    async register(dto: RegisterDto): Promise<AuthResponse> {
+        await this.checkEmailAvailability(dto.email);
 
-        if (existingUser) {
-            throw new ConflictException('Email already registered');
-        }
+        const hashedPassword = await hashPassword(dto.password);
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-        // Create user
         const user = await this.prisma.user.create({
             data: {
                 email: dto.email,
@@ -39,113 +32,140 @@ export class AuthService {
             },
         });
 
-        // Generate token
-        const token = this.generateToken(user.id);
-
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
+        const accessToken = this.generateToken(user.id);
 
         return {
-            user: userWithoutPassword,
-            accessToken: token,
+            user: excludePassword(user),
+            accessToken,
         };
     }
 
     /**
      * Login user.
      */
-    async login(dto: LoginDto) {
-        // Find user
+    async login(dto: LoginDto): Promise<AuthResponse> {
         const user = await this.prisma.user.findFirst({
             where: { email: dto.email },
         });
 
         if (!user || !user.password) {
-            throw new UnauthorizedException('Invalid credentials');
+            throw new UnauthorizedException(AUTH_CONSTANTS.MESSAGES.INVALID_CREDENTIALS);
         }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+        const isPasswordValid = await comparePassword(dto.password, user.password);
 
         if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid credentials');
+            throw new UnauthorizedException(AUTH_CONSTANTS.MESSAGES.INVALID_CREDENTIALS);
         }
 
-        // Generate token
-        const token = this.generateToken(user.id);
-
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
+        const accessToken = this.generateToken(user.id);
 
         return {
-            user: userWithoutPassword,
-            accessToken: token,
+            user: excludePassword(user),
+            accessToken,
         };
     }
 
     /**
      * Get user by ID.
      */
-    async getUserById(userId: number) {
+    async getUserById(userId: number): Promise<UserWithoutPassword> {
+        const user = await this.findUserOrThrow(userId);
+        return excludePassword(user);
+    }
+
+    /**
+     * Update user profile.
+     */
+    async updateProfile(userId: number, dto: UpdateProfileDto): Promise<UserWithoutPassword> {
+        await this.findUserOrThrow(userId);
+
+        const user = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...dto,
+                updateDate: new Date(),
+            },
+        });
+
+        return excludePassword(user);
+    }
+
+    /**
+     * Change user password.
+     */
+    async changePassword(userId: number, dto: ChangePasswordDto): Promise<MessageResponse> {
+        const user = await this.findUserOrThrow(userId);
+
+        if (!user.password) {
+            throw new UnauthorizedException(AUTH_CONSTANTS.MESSAGES.INVALID_CREDENTIALS);
+        }
+
+        const isCurrentPasswordValid = await comparePassword(dto.currentPassword, user.password);
+
+        if (!isCurrentPasswordValid) {
+            throw new UnauthorizedException(AUTH_CONSTANTS.MESSAGES.INCORRECT_PASSWORD);
+        }
+
+        const hashedPassword = await hashPassword(dto.newPassword);
+
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+                updateDate: new Date(),
+            },
+        });
+
+        return { message: AUTH_CONSTANTS.MESSAGES.PASSWORD_CHANGED };
+    }
+
+    /**
+     * Delete user account.
+     */
+    async deleteUser(userId: number): Promise<MessageResponse> {
+        await this.findUserOrThrow(userId);
+
+        await this.prisma.user.delete({
+            where: { id: userId },
+        });
+
+        return { message: AUTH_CONSTANTS.MESSAGES.ACCOUNT_DELETED };
+    }
+
+    /**
+     * Check if email is available.
+     */
+    private async checkEmailAvailability(email: string): Promise<void> {
+        const existingUser = await this.prisma.user.findFirst({
+            where: { email },
+        });
+
+        if (existingUser) {
+            throw new ConflictException(AUTH_CONSTANTS.MESSAGES.EMAIL_ALREADY_EXISTS);
+        }
+    }
+
+    /**
+     * Find user by ID or throw exception.
+     */
+    private async findUserOrThrow(userId: number) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
         if (!user) {
-            throw new UnauthorizedException('User not found');
+            throw new UnauthorizedException(AUTH_CONSTANTS.MESSAGES.USER_NOT_FOUND);
         }
 
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
+        return user;
     }
-
-    /**
-     * Update user by ID.
-     */
-    async updateProfile(userId: number, userData:  UpdateDto) {
-        const { name, surname, sex, birthDate, imageUrl } =
-            userData;
-
-        const user = await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                ...(name && { name }),
-                ...(surname && { surname }),
-                ...(sex && { sex }),
-                // ...(imageUrl && newImageUrl && { imageUrl: newImageUrl }), TODO add AWS cloud
-                // ...(birthDate && { birthDate: birthDateFormatted }),
-                updateDate: new Date(),
-            }
-        });
-
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-    }
-
-
-    /**
-     * Update user by ID.
-     */
-    async changePassword(userId: number, newPassword:  ChangePasswordDto) {
-        const user = await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                password: newPassword.password,
-                updateDate: new Date(),
-
-            }
-        });
-
-        const { password, ...userWithoutPassword } = user;
-        // TODO change output??
-        return userWithoutPassword;
-    }
-
 
     /**
      * Generate JWT token.
      */
     private generateToken(userId: number): string {
-        return this.jwtService.sign({ sub: userId });
+        const payload: JwtPayload = { sub: userId };
+        return this.jwtService.sign(payload);
     }
 }
