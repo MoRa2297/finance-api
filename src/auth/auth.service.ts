@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma';
-import { RegisterDto, LoginDto } from './dto';
+import {ChangePasswordDto, LoginDto, RegisterDto, UpdateDto} from './dto';
 
 @Injectable()
 export class AuthService {
@@ -98,6 +98,49 @@ export class AuthService {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
     }
+
+    /**
+     * Update user by ID.
+     */
+    async updateProfile(userId: number, userData:  UpdateDto) {
+        const { name, surname, sex, birthDate, imageUrl } =
+            userData;
+
+        const user = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(name && { name }),
+                ...(surname && { surname }),
+                ...(sex && { sex }),
+                // ...(imageUrl && newImageUrl && { imageUrl: newImageUrl }), TODO add AWS cloud
+                // ...(birthDate && { birthDate: birthDateFormatted }),
+                updateDate: new Date(),
+            }
+        });
+
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+
+
+    /**
+     * Update user by ID.
+     */
+    async changePassword(userId: number, newPassword:  ChangePasswordDto) {
+        const user = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: newPassword.password,
+                updateDate: new Date(),
+
+            }
+        });
+
+        const { password, ...userWithoutPassword } = user;
+        // TODO change output??
+        return userWithoutPassword;
+    }
+
 
     /**
      * Generate JWT token.
