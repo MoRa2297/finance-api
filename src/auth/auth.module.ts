@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import {ConfigModule, ConfigService} from "@nestjs/config";
-import {PrismaModule} from "../prisma";
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { PrismaModule } from '../prisma';
 
 @Module({
     imports: [
@@ -15,7 +15,7 @@ import type { StringValue } from 'ms';
         JwtModule.registerAsync({
             imports: [ConfigModule],
             useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>('jwt.secret'),
+                secret: configService.getOrThrow<string>('jwt.secret'),
                 signOptions: {
                     expiresIn: configService.getOrThrow<string>('jwt.expiresIn') as StringValue,
                 },

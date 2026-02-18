@@ -2,8 +2,8 @@ import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request } from '@n
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto';
-import { JwtAuthGuard } from './guards';
 import { AuthResponse, UserWithoutPassword, MessageResponse } from './types';
+import {JwtAuthGuard} from "../common";
 
 interface AuthenticatedRequest {
     user: { id: number };

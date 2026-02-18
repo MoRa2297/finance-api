@@ -3,11 +3,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter, ResponseInterceptor } from './common';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    // Config service
     const configService = app.get(ConfigService);
     const port = configService.get<number>('app.port') ?? 3000;
     const nodeEnv = configService.get<string>('app.nodeEnv');
@@ -21,7 +21,13 @@ async function bootstrap() {
         }),
     );
 
-    // Swagger — only in development
+    // Global exception filter
+    app.useGlobalFilters(new HttpExceptionFilter());
+
+    // Global response interceptor
+    app.useGlobalInterceptors(new ResponseInterceptor());
+
+    // Swagger — solo in development
     if (nodeEnv !== 'production') {
         const config = new DocumentBuilder()
             .setTitle('Finance API')
