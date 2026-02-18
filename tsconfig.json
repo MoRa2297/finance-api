@@ -21,7 +21,8 @@
       "@common/*": ["common/*"],
       "@config/*": ["config/*"],
       "@auth/*": ["auth/*"],
-      "@prisma-client/*": ["prisma/*"]
+      "@prisma-client/*": ["prisma/*"],
+      "@graphql/*": ["graphql/*"]
     }
   }
 }
