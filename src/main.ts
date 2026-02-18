@@ -1,44 +1,42 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import {ValidationPipe} from "@nestjs/common";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
 
-    // Enable CORS
-    // app.enableCors({
-    //    origin: [
-    //        'http://localhost:3001',  // Next.js dev
-    //        'http://localhost:8081',  // Expo dev
-    //        // Aggiungi domini produzione dopo
-    //    ],
-    //    credentials: true,
-    // });
+    // Config service
+    const configService = app.get(ConfigService);
+    const port = configService.get<number>('app.port') ?? 3000;
+    const nodeEnv = configService.get<string>('app.nodeEnv');
 
-  // Enable global validation
-  app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-  );
+    // Global validation
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }),
+    );
 
+    // Swagger — only in development
+    if (nodeEnv !== 'production') {
+        const config = new DocumentBuilder()
+            .setTitle('Finance API')
+            .setDescription('Personal Finance API documentation')
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
 
+        const document = SwaggerModule.createDocument(app, config);
+        SwaggerModule.setup('api/docs', app, document);
+    }
 
-
-  // Swagger configuration
-  const config = new DocumentBuilder()
-      .setTitle('Finance API')
-      .setDescription('Personal Finance API documentation')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  await app.listen(process.env.PORT ?? 3000);
+    await app.listen(port);
+    console.log(`🚀 Server running on http://localhost:${port}`);
+    console.log(`📖 Docs available at http://localhost:${port}/api/docs`);
 }
+
 bootstrap();
