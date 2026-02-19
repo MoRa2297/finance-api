@@ -25,7 +25,8 @@
       "@graphql/*": ["graphql/*"],
       "@lookup/*": ["lookup/*"],
       "@category/*": ["category/*"],
-      "@bank-account/*": ["bank-account/*"]
+      "@bank-account/*": ["bank-account/*"],
+      "@card-account/*": ["card-account/*"]
     }
   }
 }
