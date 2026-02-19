@@ -24,7 +24,8 @@
       "@prisma-client/*": ["prisma/*"],
       "@graphql/*": ["graphql/*"],
       "@lookup/*": ["lookup/*"],
-      "@category/*": ["category/*"]
+      "@category/*": ["category/*"],
+      "@bank-account/*": ["bank-account/*"]
     }
   }
 }

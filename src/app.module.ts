@@ -9,6 +9,7 @@ import { AuthModule } from '@auth/auth.module';
 import { LookupModule } from '@lookup/lookup.module';
 import { AppResolver } from './app.resolver';
 import {CategoryModule} from "@category/category.module";
+import {BankAccountModule} from "@bank-account/bank-account.module";
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import {CategoryModule} from "@category/category.module";
     AuthModule,
     LookupModule,
     CategoryModule,
-
+    BankAccountModule,
   ],
   providers: [AppResolver],
 })
