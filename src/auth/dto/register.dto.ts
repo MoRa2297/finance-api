@@ -26,7 +26,8 @@ export class RegisterDto {
     @IsOptional()
     sex?: string;
 
-    @ApiProperty({ example: true })
+    @ApiPropertyOptional({ default: true })
     @IsBoolean()
-    acceptedTerms: boolean;
+    @IsOptional()
+    acceptedTerms?: boolean = true;
 }
