@@ -6,6 +6,7 @@ import { ConfigModule } from '@config/config.module';
 import { ConfigService } from '@nestjs/config';
 import { PrismaModule } from '@prisma-client/prisma.module';
 import { AuthModule } from '@auth/auth.module';
+import { LookupModule } from '@lookup/lookup.module';
 import { AppResolver } from './app.resolver';
 
 @Module({
@@ -24,6 +25,7 @@ import { AppResolver } from './app.resolver';
       inject: [ConfigService],
     }),
     AuthModule,
+    LookupModule,
   ],
   providers: [AppResolver],
 })
