@@ -17,12 +17,10 @@ export const CurrentUser = createParamDecorator(
 
         if (contextType === 'graphql') {
             const ctx = GqlExecutionContext.create(context);
-            const user = ctx.getContext().req.user as JwtPayload;
-            return { id: user.sub };
+            return ctx.getContext().req.user as CurrentUserPayload;
         }
 
         const request = context.switchToHttp().getRequest();
-        const user = request.user as JwtPayload;
-        return { id: user.sub };
+        return request.user as CurrentUserPayload;
     },
 );
