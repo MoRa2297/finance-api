@@ -1,13 +1,9 @@
-import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto';
 import { AuthResponse, UserWithoutPassword, MessageResponse } from './types';
-import {JwtAuthGuard} from "../common";
-
-interface AuthenticatedRequest {
-    user: { id: number };
-}
+import { CurrentUser, CurrentUserPayload, JwtAuthGuard } from '../common';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -30,8 +26,8 @@ export class AuthController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get current user' })
-    async getMe(@Request() req: AuthenticatedRequest): Promise<UserWithoutPassword> {
-        return this.authService.getUserById(req.user.id);
+    async getMe(@CurrentUser() user: CurrentUserPayload): Promise<UserWithoutPassword> {
+        return this.authService.getMe(user.id);
     }
 
     @Put('profile')
@@ -39,10 +35,10 @@ export class AuthController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Update current user profile' })
     async updateProfile(
-        @Request() req: AuthenticatedRequest,
+        @CurrentUser() user: CurrentUserPayload,
         @Body() dto: UpdateProfileDto,
     ): Promise<UserWithoutPassword> {
-        return this.authService.updateProfile(req.user.id, dto);
+        return this.authService.updateProfile(user.id, dto);
     }
 
     @Put('change-password')
@@ -50,17 +46,17 @@ export class AuthController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Change user password' })
     async changePassword(
-        @Request() req: AuthenticatedRequest,
+        @CurrentUser() user: CurrentUserPayload,
         @Body() dto: ChangePasswordDto,
     ): Promise<MessageResponse> {
-        return this.authService.changePassword(req.user.id, dto);
+        return this.authService.changePassword(user.id, dto);
     }
 
     @Delete('profile')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
-    @ApiOperation({ summary: 'Delete user account' })
-    async deleteProfile(@Request() req: AuthenticatedRequest): Promise<MessageResponse> {
-        return this.authService.deleteUser(req.user.id);
+    @ApiOperation({ summary: 'Delete current user account' })
+    async deleteAccount(@CurrentUser() user: CurrentUserPayload): Promise<MessageResponse> {
+        return this.authService.deleteAccount(user.id);
     }
 }

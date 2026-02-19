@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { RegisterInput, LoginInput, UpdateProfileInput, ChangePasswordInput } from './inputs/auth.inputs';
 import { AuthType, MessageType, UserType } from './types/auth-gql.types';
 import { GqlAuthGuard } from '@common/guards/gql-auth.guard';
-import { CurrentUser, JwtPayload } from '@common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 
 @Resolver()
 export class AuthResolver {
@@ -22,14 +22,14 @@ export class AuthResolver {
 
     @Query(() => UserType)
     @UseGuards(GqlAuthGuard)
-    async me(@CurrentUser() user: JwtPayload): Promise<UserType> {
-        return this.authService.getUserById(user.id) as any;
+    async me(@CurrentUser() user: CurrentUserPayload): Promise<UserType> {
+        return this.authService.getMe(user.id) as any;
     }
 
     @Mutation(() => UserType)
     @UseGuards(GqlAuthGuard)
     async updateProfile(
-        @CurrentUser() user: JwtPayload,
+        @CurrentUser() user: CurrentUserPayload,
         @Args('input') input: UpdateProfileInput,
     ): Promise<UserType> {
         return this.authService.updateProfile(user.id, input) as any;
@@ -38,15 +38,15 @@ export class AuthResolver {
     @Mutation(() => MessageType)
     @UseGuards(GqlAuthGuard)
     async changePassword(
-        @CurrentUser() user: JwtPayload,
+        @CurrentUser() user: CurrentUserPayload,
         @Args('input') input: ChangePasswordInput,
     ): Promise<MessageType> {
         return this.authService.changePassword(user.id, input) as any;
     }
 
-    // @Mutation(() => MessageType)
-    // @UseGuards(GqlAuthGuard)
-    // async deleteAccount(@CurrentUser() user: JwtPayload): Promise<MessageType> {
-    //     return this.authService.deleteAccount(user.id) as any;
-    // }
+    @Mutation(() => MessageType)
+    @UseGuards(GqlAuthGuard)
+    async deleteAccount(@CurrentUser() user: CurrentUserPayload): Promise<MessageType> {
+        return this.authService.deleteAccount(user.id) as any;
+    }
 }

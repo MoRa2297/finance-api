@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma';
 import { RegisterDto, LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto';
 import { AUTH_CONSTANTS } from './constants/auth.constants';
-import { AuthResponse, UserWithoutPassword, MessageResponse, JwtPayload } from './types';
+import { AuthResponse, UserWithoutPassword, MessageResponse } from './types';
 import { hashPassword, comparePassword, excludePassword } from './helpers';
 
 @Injectable()
@@ -13,9 +13,6 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) {}
 
-    /**
-     * Register a new user.
-     */
     async register(dto: RegisterDto): Promise<AuthResponse> {
         await this.checkEmailAvailability(dto.email);
 
@@ -28,7 +25,7 @@ export class AuthService {
                 name: dto.name,
                 surname: dto.surname,
                 sex: dto.sex,
-                acceptedTerms: dto.acceptedTerms,
+                acceptedTerms: dto.acceptedTerms ?? true,
             },
         });
 
@@ -40,9 +37,6 @@ export class AuthService {
         };
     }
 
-    /**
-     * Login user.
-     */
     async login(dto: LoginDto): Promise<AuthResponse> {
         const user = await this.prisma.user.findFirst({
             where: { email: dto.email },
@@ -66,17 +60,11 @@ export class AuthService {
         };
     }
 
-    /**
-     * Get user by ID.
-     */
-    async getUserById(userId: number): Promise<UserWithoutPassword> {
+    async getMe(userId: number): Promise<UserWithoutPassword> {
         const user = await this.findUserOrThrow(userId);
         return excludePassword(user);
     }
 
-    /**
-     * Update user profile.
-     */
     async updateProfile(userId: number, dto: UpdateProfileDto): Promise<UserWithoutPassword> {
         await this.findUserOrThrow(userId);
 
@@ -91,9 +79,6 @@ export class AuthService {
         return excludePassword(user);
     }
 
-    /**
-     * Change user password.
-     */
     async changePassword(userId: number, dto: ChangePasswordDto): Promise<MessageResponse> {
         const user = await this.findUserOrThrow(userId);
 
@@ -120,10 +105,7 @@ export class AuthService {
         return { message: AUTH_CONSTANTS.MESSAGES.PASSWORD_CHANGED };
     }
 
-    /**
-     * Delete user account.
-     */
-    async deleteUser(userId: number): Promise<MessageResponse> {
+    async deleteAccount(userId: number): Promise<MessageResponse> {
         await this.findUserOrThrow(userId);
 
         await this.prisma.user.delete({
@@ -133,9 +115,6 @@ export class AuthService {
         return { message: AUTH_CONSTANTS.MESSAGES.ACCOUNT_DELETED };
     }
 
-    /**
-     * Check if email is available.
-     */
     private async checkEmailAvailability(email: string): Promise<void> {
         const existingUser = await this.prisma.user.findFirst({
             where: { email },
@@ -146,9 +125,6 @@ export class AuthService {
         }
     }
 
-    /**
-     * Find user by ID or throw exception.
-     */
     private async findUserOrThrow(userId: number) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -161,11 +137,7 @@ export class AuthService {
         return user;
     }
 
-    /**
-     * Generate JWT token.
-     */
     private generateToken(userId: number): string {
-        const payload: JwtPayload = { sub: userId };
-        return this.jwtService.sign(payload);
+        return this.jwtService.sign({ sub: userId });
     }
 }
