@@ -8,6 +8,7 @@ import { PrismaModule } from '@prisma-client/prisma.module';
 import { AuthModule } from '@auth/auth.module';
 import { LookupModule } from '@lookup/lookup.module';
 import { AppResolver } from './app.resolver';
+import {CategoryModule} from "@category/category.module";
 
 @Module({
   imports: [
@@ -26,6 +27,8 @@ import { AppResolver } from './app.resolver';
     }),
     AuthModule,
     LookupModule,
+    CategoryModule,
+
   ],
   providers: [AppResolver],
 })

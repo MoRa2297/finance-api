@@ -23,7 +23,8 @@
       "@auth/*": ["auth/*"],
       "@prisma-client/*": ["prisma/*"],
       "@graphql/*": ["graphql/*"],
-      "@lookup/*": ["lookup/*"]
+      "@lookup/*": ["lookup/*"],
+      "@category/*": ["category/*"]
     }
   }
 }
