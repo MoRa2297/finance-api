@@ -11,6 +11,7 @@ import { AppResolver } from './app.resolver';
 import {CategoryModule} from "@category/category.module";
 import {BankAccountModule} from "@bank-account/bank-account.module";
 import {CardAccountModule} from "@card-account/card-account.module";
+import {TransactionModule} from "@transaction/transaction.module";
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import {CardAccountModule} from "@card-account/card-account.module";
     LookupModule,
     CategoryModule,
     BankAccountModule,
-    CardAccountModule
+    CardAccountModule,
+    TransactionModule,
   ],
   providers: [AppResolver],
 })
