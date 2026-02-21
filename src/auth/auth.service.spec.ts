@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma';
 import * as helpers from './helpers';
 
- import { mockUser, registerDto, loginDto } from '@test/fixtures';
+import { mockUser, registerDto, loginDto } from '@test/fixtures';
 import {mockJwtService, mockPrismaService} from "@test/mocks";
 
 describe('AuthService', () => {
