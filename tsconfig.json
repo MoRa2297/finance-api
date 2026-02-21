@@ -27,7 +27,8 @@
       "@category/*": ["category/*"],
       "@bank-account/*": ["bank-account/*"],
       "@card-account/*": ["card-account/*"],
-      "@transaction/*": ["transaction/*"]
+      "@transaction/*": ["transaction/*"],
+      "@test/*": ["test/*"]
     }
   }
 }

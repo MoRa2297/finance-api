@@ -1,0 +1,30 @@
+export const mockTransaction = {
+    id: 1,
+    money: 50.00,
+    recived: false,
+    date: new Date('2026-02-19'),
+    description: 'Spesa al supermercato',
+    recurrent: false,
+    repeat: false,
+    note: '',
+    type: 'expense',
+    userId: 1,
+    categoryId: 1,
+    bankAccountId: 1,
+    cardAccountId: null,
+    createdDate: new Date('2026-01-01'),
+    updateDate: new Date('2026-01-01'),
+};
+
+export const createTransactionDto = {
+    money: 50.00,
+    recived: false,
+    date: '2026-02-19',
+    description: 'Spesa al supermercato',
+    recurrent: false,
+    repeat: false,
+    note: '',
+    type: 'expense',
+    categoryId: 1,
+    bankAccountId: 1,
+};
