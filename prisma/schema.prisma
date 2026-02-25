@@ -45,7 +45,7 @@ model CategoryIcon {
   iconName    String
   updateDate  DateTime   @default(now())
   createdDate DateTime   @default(now())
-  Category    Category[]
+  category    Category[]
 }
 
 model BankType {
@@ -84,9 +84,9 @@ model Category {
   userId        Int
   categoryColor Color         @relation(fields: [colorId], references: [id])
   colorId       Int
-  CategoryIcon  CategoryIcon? @relation(fields: [iconId], references: [id])
+  categoryIcon  CategoryIcon? @relation(fields: [iconId], references: [id])
   iconId        Int?
-  Transaction   Transaction[]
+  transaction   Transaction[]
 }
 
 model BankAccount {
@@ -97,14 +97,14 @@ model BankAccount {
   createdDate       DateTime         @default(now())
   createdBy         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId            Int
-  Color             Color?           @relation(fields: [colorId], references: [id])
+  color             Color?           @relation(fields: [colorId], references: [id])
   colorId           Int?
-  BankType          BankType?        @relation(fields: [bankTypeId], references: [id])
+  bankType          BankType?        @relation(fields: [bankTypeId], references: [id])
   bankTypeId        Int?
-  BankAccountType   BankAccountType? @relation(fields: [bankAccountTypeId], references: [id])
+  bankAccountType   BankAccountType? @relation(fields: [bankAccountTypeId], references: [id])
   bankAccountTypeId Int?
   cardAccount       CardAccount[]
-  Transaction       Transaction[]
+  transaction       Transaction[]
 }
 
 model CardAccount {
@@ -117,11 +117,11 @@ model CardAccount {
   createdDate   DateTime      @default(now())
   createdBy     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
-  BankAccount   BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  bankAccount   BankAccount?  @relation(fields: [bankAccountId], references: [id])
   bankAccountId Int?
-  CardType      CardType?     @relation(fields: [cardTypeId], references: [id])
+  cardType      CardType?     @relation(fields: [cardTypeId], references: [id])
   cardTypeId    Int?
-  Transaction   Transaction[]
+  transaction   Transaction[]
 }
 
 model Transaction {
@@ -138,10 +138,10 @@ model Transaction {
   createdDate   DateTime     @default(now())
   createdBy     User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int?
-  BankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
   bankAccountId Int?
-  Category      Category     @relation(fields: [categoryId], references: [id])
+  category      Category     @relation(fields: [categoryId], references: [id])
   categoryId    Int
-  Card          CardAccount? @relation(fields: [cardAccountId], references: [id])
+  card          CardAccount? @relation(fields: [cardAccountId], references: [id])
   cardAccountId Int?
 }
