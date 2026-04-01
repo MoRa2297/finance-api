@@ -12,23 +12,51 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Frequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum RecurringType {
+  INCOME
+  EXPENSE
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
 model User {
-  id            Int           @id @default(autoincrement())
+  id            Int             @id @default(autoincrement())
   email         String
   password      String?
   name          String?
   surname       String?
-  birthDate     DateTime?     @db.Date
+  birthDate     DateTime?       @db.Date
   sex           String?
-  imageUrl      String?       @default("")
-  acceptedTerms Boolean       @default(true)
+  imageUrl      String?         @default("")
+  acceptedTerms Boolean         @default(true)
   token         String?
-  updateDate    DateTime      @default(now())
-  createdDate   DateTime      @default(now())
+  updateDate    DateTime        @default(now())
+  createdDate   DateTime        @default(now())
   category      Category[]
   bankAccount   BankAccount[]
   cardAccount   CardAccount[]
   transaction   Transaction[]
+  recurringRule RecurringRule[]
 }
 
 model Color {
@@ -75,18 +103,19 @@ model CardType {
 }
 
 model Category {
-  id            Int           @id @default(autoincrement())
+  id            Int             @id @default(autoincrement())
   name          String
-  type          String
-  updateDate    DateTime      @default(now())
-  createdDate   DateTime      @default(now())
-  createdBy     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          CategoryType
+  updateDate    DateTime        @default(now())
+  createdDate   DateTime        @default(now())
+  createdBy     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
-  categoryColor Color         @relation(fields: [colorId], references: [id])
+  categoryColor Color           @relation(fields: [colorId], references: [id])
   colorId       Int
-  categoryIcon  CategoryIcon? @relation(fields: [iconId], references: [id])
+  categoryIcon  CategoryIcon?   @relation(fields: [iconId], references: [id])
   iconId        Int?
   transaction   Transaction[]
+  recurringRule RecurringRule[]
 }
 
 model BankAccount {
@@ -105,43 +134,89 @@ model BankAccount {
   bankAccountTypeId Int?
   cardAccount       CardAccount[]
   transaction       Transaction[]
+  recurringRule     RecurringRule[]
+  transfersFrom     TransferDetail[] @relation("TransferFrom")
+  transfersTo       TransferDetail[] @relation("TransferTo")
 }
 
 model CardAccount {
-  id            Int           @id @default(autoincrement())
+  id            Int             @id @default(autoincrement())
   name          String
   cardLimit     Float
   monthExpiry   Int
   yearExpiry    Int
-  updateDate    DateTime      @default(now())
-  createdDate   DateTime      @default(now())
-  createdBy     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updateDate    DateTime        @default(now())
+  createdDate   DateTime        @default(now())
+  createdBy     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
-  bankAccount   BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  bankAccount   BankAccount?    @relation(fields: [bankAccountId], references: [id])
   bankAccountId Int?
-  cardType      CardType?     @relation(fields: [cardTypeId], references: [id])
+  cardType      CardType?       @relation(fields: [cardTypeId], references: [id])
   cardTypeId    Int?
   transaction   Transaction[]
+  recurringRule RecurringRule[]
 }
 
 model Transaction {
-  id            Int          @id @default(autoincrement())
-  money         Float
-  recived       Boolean      @default(false)
-  date          DateTime     @db.Date
-  description   String
-  recurrent     Boolean
-  repeat        Boolean
-  note          String
-  type          String
-  updateDate    DateTime     @default(now())
-  createdDate   DateTime     @default(now())
-  createdBy     User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        Int?
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
-  bankAccountId Int?
-  category      Category     @relation(fields: [categoryId], references: [id])
-  categoryId    Int
-  card          CardAccount? @relation(fields: [cardAccountId], references: [id])
-  cardAccountId Int?
+  id              Int              @id @default(autoincrement())
+  money           Float
+  date            DateTime         @db.Date
+  description     String
+  recurrent       Boolean          @default(false)
+  note            String           @default("")
+  type            TransactionType
+  updateDate      DateTime         @default(now())
+  createdDate     DateTime         @default(now())
+  createdBy       User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int?
+  bankAccount     BankAccount?     @relation(fields: [bankAccountId], references: [id])
+  bankAccountId   Int?
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  categoryId      Int?
+  card            CardAccount?     @relation(fields: [cardAccountId], references: [id])
+  cardAccountId   Int?
+  recurringRule   RecurringRule?   @relation(fields: [recurringRuleId], references: [id])
+  recurringRuleId Int?
+  transferFrom    TransferDetail?  @relation("TransferFrom")
+  transferTo      TransferDetail?  @relation("TransferTo")
+}
+
+model TransferDetail {
+  id                Int         @id @default(autoincrement())
+  updateDate        DateTime    @default(now())
+  createdDate       DateTime    @default(now())
+  fromTransaction   Transaction @relation("TransferFrom", fields: [fromTransactionId], references: [id], onDelete: Cascade)
+  fromTransactionId Int         @unique
+  toTransaction     Transaction @relation("TransferTo", fields: [toTransactionId], references: [id], onDelete: Cascade)
+  toTransactionId   Int         @unique
+  fromAccount       BankAccount @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  fromAccountId     Int
+  toAccount         BankAccount @relation("TransferTo", fields: [toAccountId], references: [id])
+  toAccountId       Int
+}
+
+model RecurringRule {
+  id                Int           @id @default(autoincrement())
+  description       String
+  amount            Float
+  type              RecurringType
+  frequency         Frequency
+  startDate         DateTime      @db.Date
+  endDate           DateTime?     @db.Date
+  dayOfMonth        Int?
+  dayOfWeek         String?
+  note              String        @default("")
+  isActive          Boolean       @default(true)
+  lastGeneratedDate DateTime?     @db.Date
+  updateDate        DateTime      @default(now())
+  createdDate       DateTime      @default(now())
+  createdBy         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            Int
+  category          Category      @relation(fields: [categoryId], references: [id])
+  categoryId        Int
+  bankAccount       BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  bankAccountId     Int?
+  card              CardAccount?  @relation(fields: [cardAccountId], references: [id])
+  cardAccountId     Int?
+  transactions      Transaction[]
 }

@@ -15,6 +15,7 @@ import { TransactionModule } from '@transaction/transaction.module';
 import { HealthModule } from './health/health.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { RecurringModule } from './recurring/recurring.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     CardAccountModule,
     TransactionModule,
     HealthModule,
+    RecurringModule,
   ],
   providers: [
     AppResolver,

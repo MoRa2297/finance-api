@@ -1,23 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsInt, IsOptional, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
+import { CategoryType } from '@prisma/client';
 
 export class CreateCategoryDto {
-    @ApiProperty({ example: 'Spesa' })
-    @IsString()
-    @IsNotEmpty()
-    name: string;
+  @ApiProperty({ example: 'Spesa' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
-    @ApiProperty({ example: 'expense', enum: ['expense', 'income'] })
-    @IsString()
-    @IsIn(['expense', 'income'])
-    type: string;
+  @ApiProperty({ enum: CategoryType, example: CategoryType.EXPENSE })
+  @IsEnum(CategoryType)
+  type: CategoryType;
 
-    @ApiProperty({ example: 1 })
-    @IsInt()
-    colorId: number;
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  colorId: number;
 
-    @ApiPropertyOptional({ example: 1 })
-    @IsInt()
-    @IsOptional()
-    iconId?: number;
+  @ApiPropertyOptional({ example: 1 })
+  @IsInt()
+  @IsOptional()
+  iconId?: number;
 }

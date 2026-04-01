@@ -2,13 +2,17 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@prisma-client/prisma.service';
 import {
   CreateTransactionDto,
+  CreateTransferDto,
   UpdateTransactionDto,
   FilterTransactionDto,
 } from './dto';
+import { TransactionType } from '@prisma/client';
+import { RecurringService } from '../recurring/recurring.service';
 
 const TRANSACTION_INCLUDE = {
   category: {
@@ -23,6 +27,18 @@ const TRANSACTION_INCLUDE = {
     },
   },
   card: true,
+  transferFrom: {
+    include: {
+      fromAccount: true,
+      toAccount: true,
+    },
+  },
+  transferTo: {
+    include: {
+      fromAccount: true,
+      toAccount: true,
+    },
+  },
 };
 
 @Injectable()
@@ -82,20 +98,67 @@ export class TransactionService {
   }
 
   async createTransaction(userId: number, dto: CreateTransactionDto) {
-    await this.verifyCategoryOwnership(dto.categoryId, userId);
-    if (dto.bankAccountId)
+    if (dto.type === TransactionType.TRANSFER) {
+      throw new BadRequestException(
+        'Use POST /transactions/transfer to create a transfer',
+      );
+    }
+
+    if (dto.categoryId) {
+      await this.verifyCategoryOwnership(dto.categoryId, userId);
+    }
+    if (dto.bankAccountId) {
       await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
-    if (dto.cardAccountId)
+    }
+    if (dto.cardAccountId) {
       await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    }
+
+    // Se recurrent, crea la RecurringRule e collega la transazione
+    if (dto.recurrent) {
+      if (!dto.frequency) {
+        throw new BadRequestException(
+          'frequency is required when recurrent is true',
+        );
+      }
+
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.money,
+        type: dto.type === TransactionType.INCOME ? 'INCOME' : 'EXPENSE',
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note,
+        categoryId: dto.categoryId!,
+        bankAccountId: dto.bankAccountId,
+        cardAccountId: dto.cardAccountId,
+      });
+
+      return this.prisma.transaction.create({
+        data: {
+          money: dto.money,
+          date: new Date(dto.date),
+          description: dto.description,
+          recurrent: true,
+          note: dto.note,
+          type: dto.type,
+          userId,
+          categoryId: dto.categoryId,
+          bankAccountId: dto.bankAccountId,
+          cardAccountId: dto.cardAccountId,
+          recurringRuleId: rule.id,
+        },
+        include: TRANSACTION_INCLUDE,
+      });
+    }
 
     return this.prisma.transaction.create({
       data: {
         money: dto.money,
-        recived: dto.recived,
         date: new Date(dto.date),
         description: dto.description,
-        recurrent: dto.recurrent,
-        repeat: dto.repeat,
+        recurrent: false,
         note: dto.note,
         type: dto.type,
         userId,
@@ -107,6 +170,65 @@ export class TransactionService {
     });
   }
 
+  async createTransfer(userId: number, dto: CreateTransferDto) {
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException(
+        'Source and destination accounts must be different',
+      );
+    }
+
+    await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
+    await this.verifyBankAccountOwnership(dto.toAccountId, userId);
+
+    const date = new Date(dto.date);
+    const note = dto.note ?? '';
+
+    return this.prisma.$transaction(async (tx) => {
+      const fromTransaction = await tx.transaction.create({
+        data: {
+          money: dto.money,
+          date,
+          description: dto.description,
+          note,
+          recurrent: false,
+          type: TransactionType.TRANSFER,
+          userId,
+          bankAccountId: dto.fromAccountId,
+        },
+      });
+
+      const toTransaction = await tx.transaction.create({
+        data: {
+          money: dto.money,
+          date,
+          description: dto.description,
+          note,
+          recurrent: false,
+          type: TransactionType.TRANSFER,
+          userId,
+          bankAccountId: dto.toAccountId,
+        },
+      });
+
+      const transferDetail = await tx.transferDetail.create({
+        data: {
+          fromTransactionId: fromTransaction.id,
+          toTransactionId: toTransaction.id,
+          fromAccountId: dto.fromAccountId,
+          toAccountId: dto.toAccountId,
+        },
+        include: {
+          fromTransaction: true,
+          toTransaction: true,
+          fromAccount: true,
+          toAccount: true,
+        },
+      });
+
+      return transferDetail;
+    });
+  }
+
   async updateTransaction(
     id: number,
     userId: number,
@@ -115,12 +237,21 @@ export class TransactionService {
     const transaction = await this.findTransactionOrThrow(id);
     this.checkOwnership(transaction.userId, userId);
 
-    if (dto.categoryId)
+    if (transaction.type === TransactionType.TRANSFER) {
+      throw new BadRequestException(
+        'Transfer transactions cannot be updated directly. Delete and recreate the transfer.',
+      );
+    }
+
+    if (dto.categoryId) {
       await this.verifyCategoryOwnership(dto.categoryId, userId);
-    if (dto.bankAccountId)
+    }
+    if (dto.bankAccountId) {
       await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
-    if (dto.cardAccountId)
+    }
+    if (dto.cardAccountId) {
       await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    }
 
     return this.prisma.transaction.update({
       where: { id },
@@ -136,8 +267,66 @@ export class TransactionService {
   async deleteTransaction(id: number, userId: number) {
     const transaction = await this.findTransactionOrThrow(id);
     this.checkOwnership(transaction.userId, userId);
+
+    // Se è un trasferimento, elimina entrambe le transazioni collegate
+    if (transaction.type === TransactionType.TRANSFER) {
+      return this.deleteTransfer(transaction, userId);
+    }
+
     await this.prisma.transaction.delete({ where: { id } });
     return { message: 'Transaction deleted successfully' };
+  }
+
+  private async deleteTransfer(
+    transaction: Awaited<ReturnType<typeof this.findTransactionOrThrow>>,
+    userId: number,
+  ) {
+    // Trova il TransferDetail collegato (può essere fromTransaction o toTransaction)
+    const transferDetail = await this.prisma.transferDetail.findFirst({
+      where: {
+        OR: [
+          { fromTransactionId: transaction.id },
+          { toTransactionId: transaction.id },
+        ],
+      },
+    });
+
+    if (!transferDetail) {
+      // Caso anomalo: transazione TRANSFER senza detail — elimina solo questa
+      await this.prisma.transaction.delete({ where: { id: transaction.id } });
+      return { message: 'Transaction deleted successfully' };
+    }
+
+    // Verifica ownership dell'altra transazione
+    const otherTransactionId =
+      transferDetail.fromTransactionId === transaction.id
+        ? transferDetail.toTransactionId
+        : transferDetail.fromTransactionId;
+
+    const otherTransaction = await this.prisma.transaction.findUnique({
+      where: { id: otherTransactionId },
+    });
+
+    if (otherTransaction) {
+      this.checkOwnership(otherTransaction.userId, userId);
+    }
+
+    // Elimina in cascata: TransferDetail → entrambe le Transaction
+    // onDelete: Cascade sul TransferDetail gestisce il detail,
+    // ma le Transaction vanno eliminate esplicitamente
+    await this.prisma.$transaction([
+      this.prisma.transferDetail.delete({ where: { id: transferDetail.id } }),
+      this.prisma.transaction.delete({ where: { id: transaction.id } }),
+      ...(otherTransaction
+        ? [
+            this.prisma.transaction.delete({
+              where: { id: otherTransactionId },
+            }),
+          ]
+        : []),
+    ]);
+
+    return { message: 'Transfer deleted successfully' };
   }
 
   private async findTransactionOrThrow(id: number) {
@@ -166,10 +355,12 @@ export class TransactionService {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId },
     });
-    if (!category)
+    if (!category) {
       throw new NotFoundException(`Category with id ${categoryId} not found`);
-    if (category.userId !== userId)
+    }
+    if (category.userId !== userId) {
       throw new ForbiddenException('You do not have access to this category');
+    }
   }
 
   private async verifyBankAccountOwnership(
@@ -179,14 +370,16 @@ export class TransactionService {
     const account = await this.prisma.bankAccount.findUnique({
       where: { id: bankAccountId },
     });
-    if (!account)
+    if (!account) {
       throw new NotFoundException(
         `Bank account with id ${bankAccountId} not found`,
       );
-    if (account.userId !== userId)
+    }
+    if (account.userId !== userId) {
       throw new ForbiddenException(
         'You do not have access to this bank account',
       );
+    }
   }
 
   private async verifyCardAccountOwnership(
@@ -196,9 +389,11 @@ export class TransactionService {
     const card = await this.prisma.cardAccount.findUnique({
       where: { id: cardAccountId },
     });
-    if (!card)
+    if (!card) {
       throw new NotFoundException(`Card with id ${cardAccountId} not found`);
-    if (card.userId !== userId)
+    }
+    if (card.userId !== userId) {
       throw new ForbiddenException('You do not have access to this card');
+    }
   }
 }
