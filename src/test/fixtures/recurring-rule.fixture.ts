@@ -1,45 +1,47 @@
-import { TransactionType } from '@prisma/client';
+import { Frequency, RecurringType } from '@prisma/client';
 
-export const mockTransaction = {
+export const mockRecurringRule = {
   id: 1,
-  amount: 50.0,
-  date: new Date('2026-02-19'),
-  description: 'Spesa al supermercato',
-  recurrent: false,
+  description: 'Netflix',
+  amount: 15.99,
+  type: RecurringType.EXPENSE,
+  frequency: Frequency.MONTHLY,
+  startDate: new Date('2026-01-01'),
+  endDate: null,
+  dayOfMonth: null,
+  dayOfWeek: null,
   note: '',
-  type: TransactionType.EXPENSE,
+  isActive: true,
+  lastGeneratedDate: null,
   userId: 1,
   categoryId: 1,
   bankAccountId: 1,
   cardAccountId: null,
-  recurringRuleId: null,
-  transferDetailId: null,
   createdDate: new Date('2026-01-01'),
   updateDate: new Date('2026-01-01'),
   category: null,
   bankAccount: null,
   card: null,
-  transferDetail: null,
 };
 
-export const mockTransactionWithRelations = {
-  ...mockTransaction,
+export const mockRecurringRuleWithRelations = {
+  ...mockRecurringRule,
   category: {
     id: 1,
-    name: 'Spesa',
+    name: 'Abbonamenti',
     type: 'EXPENSE',
     userId: 1,
     colorId: 1,
     iconId: 1,
     categoryIcon: {
       id: 1,
-      iconName: 'shopping-cart-outline',
+      iconName: 'sync-outline',
       createdDate: new Date(),
       updateDate: new Date(),
     },
     categoryColor: {
       id: 1,
-      hexCode: '#FF0000',
+      hexCode: '#0000FF',
       createdDate: new Date(),
       updateDate: new Date(),
     },
@@ -66,26 +68,18 @@ export const mockTransactionWithRelations = {
   },
 };
 
-export const mockTransferTransaction = {
-  ...mockTransaction,
-  id: 2,
-  type: TransactionType.TRANSFER,
-  transferDetailId: 1,
-  categoryId: null,
-};
-
-export const createTransactionDto = {
-  amount: 50.0,
-  date: '2026-02-19',
-  description: 'Spesa al supermercato',
-  recurrent: false,
+export const createRecurringRuleDto = {
+  description: 'Netflix',
+  amount: 15.99,
+  type: RecurringType.EXPENSE,
+  frequency: Frequency.MONTHLY,
+  startDate: '2026-01-01',
   note: '',
-  type: TransactionType.EXPENSE,
   categoryId: 1,
   bankAccountId: 1,
 };
 
-export const updateTransactionDto = {
-  amount: 75.0,
-  description: 'Spesa aggiornata',
+export const updateRecurringRuleDto = {
+  amount: 17.99,
+  description: 'Netflix Premium',
 };

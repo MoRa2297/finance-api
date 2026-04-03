@@ -24,50 +24,16 @@ registerEnumType(TransactionType, {
   description: 'Transaction type: income, expense or transfer',
 });
 
-@InputType()
-export class CreateTransactionInput {
-  @Field(() => Float)
-  @IsNumber()
-  money: number;
-
-  @Field()
-  @IsDateString()
-  date: string;
-
-  @Field()
-  @IsString()
-  @IsNotEmpty()
-  description: string;
-
-  @Field()
-  @IsString()
-  note: string;
-
-  @Field(() => TransactionType)
-  @IsEnum(TransactionType)
-  type: TransactionType;
-
-  @Field(() => Int, { nullable: true })
-  @IsInt()
-  @IsOptional()
-  categoryId?: number;
-
-  @Field(() => Int, { nullable: true })
-  @IsInt()
-  @IsOptional()
-  bankAccountId?: number;
-
-  @Field(() => Int, { nullable: true })
-  @IsInt()
-  @IsOptional()
-  cardAccountId?: number;
-}
+registerEnumType(Frequency, {
+  name: 'FrequencyEnum',
+  description: 'Recurrence frequency',
+});
 
 @InputType()
 export class CreateTransactionInput {
   @Field(() => Float)
   @IsNumber()
-  money: number;
+  amount: number;
 
   @Field()
   @IsDateString()
@@ -90,7 +56,7 @@ export class CreateTransactionInput {
   @IsBoolean()
   recurrent: boolean;
 
-  @Field({ nullable: true })
+  @Field(() => Frequency, { nullable: true })
   @IsEnum(Frequency)
   @IsOptional()
   frequency?: Frequency;
@@ -117,11 +83,40 @@ export class CreateTransactionInput {
 }
 
 @InputType()
+export class CreateTransferInput {
+  @Field(() => Float)
+  @IsNumber()
+  amount: number;
+
+  @Field()
+  @IsDateString()
+  date: string;
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  note?: string;
+
+  @Field(() => Int)
+  @IsInt()
+  fromAccountId: number;
+
+  @Field(() => Int)
+  @IsInt()
+  toAccountId: number;
+}
+
+@InputType()
 export class UpdateTransactionInput {
   @Field(() => Float, { nullable: true })
   @IsNumber()
   @IsOptional()
-  money?: number;
+  amount?: number;
 
   @Field({ nullable: true })
   @IsDateString()

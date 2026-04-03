@@ -3,10 +3,11 @@ import { TransactionService } from './transaction.service';
 import { TransactionController } from './transaction.controller';
 import { TransactionResolver } from './transaction.resolver';
 import { PrismaModule } from '@prisma-client/prisma.module';
-import { RecurringModule } from '../recurring/recurring.module';
+import { TransactionCoreModule } from '@transaction-core/transaction-core.module';
+import { RecurringModule } from '@recurring/recurring.module';
 
 @Module({
-  imports: [PrismaModule, RecurringModule],
+  imports: [PrismaModule, TransactionCoreModule, RecurringModule],
   controllers: [TransactionController],
   providers: [TransactionService, TransactionResolver],
   exports: [TransactionService],

@@ -9,9 +9,9 @@ import {
 } from 'class-validator';
 
 export class CreateTransferDto {
-  @ApiProperty({ example: 500.0 })
+  @ApiProperty({ example: 50.0 })
   @IsNumber()
-  money: number;
+  amount: number;
 
   @ApiProperty({ example: '2026-02-19' })
   @IsDateString()

@@ -14,7 +14,7 @@ import { Frequency, TransactionType } from '@prisma/client';
 export class CreateTransactionDto {
   @ApiProperty({ example: 50.0 })
   @IsNumber()
-  money: number;
+  amount: number;
 
   @ApiProperty({ example: '2026-02-19' })
   @IsDateString()
@@ -33,7 +33,6 @@ export class CreateTransactionDto {
   @IsEnum(TransactionType)
   type: TransactionType;
 
-  // Ricorrenza
   @ApiProperty({ example: false })
   @IsBoolean()
   recurrent: boolean;
@@ -48,7 +47,7 @@ export class CreateTransactionDto {
   @IsOptional()
   recurrenceEndDate?: string;
 
-  // Relazioni
+  // Relations
   @ApiPropertyOptional({ example: 1 })
   @IsInt()
   @IsOptional()

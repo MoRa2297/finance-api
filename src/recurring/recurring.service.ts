@@ -5,30 +5,20 @@ import {
 } from '@nestjs/common';
 import { Frequency, RecurringType, TransactionType } from '@prisma/client';
 import { PrismaService } from '@prisma-client/prisma.service';
+import { ICreateRecurringRule, IUpdateRecurringRule } from './interfaces';
+import { FilterRecurringRuleDto } from './dto';
 import {
-  CreateRecurringRuleDto,
-  UpdateRecurringRuleDto,
-  FilterRecurringRuleDto,
-} from './dto';
-
-const RECURRING_RULE_INCLUDE = {
-  category: {
-    include: {
-      categoryIcon: true,
-      categoryColor: true,
-    },
-  },
-  bankAccount: {
-    include: {
-      bankType: true,
-    },
-  },
-  card: true,
-};
+  RECURRING_RULE_INCLUDE,
+  RecurringRuleWithRelations,
+} from './prisma-types';
+import { TransactionCoreService } from '../transaction-core/transaction-core.service';
 
 @Injectable()
 export class RecurringService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly transactionCore: TransactionCoreService,
+  ) {}
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
 
@@ -68,13 +58,19 @@ export class RecurringService {
     };
   }
 
-  async getRecurringRule(id: number, userId: number) {
+  async getRecurringRule(
+    id: number,
+    userId: number,
+  ): Promise<RecurringRuleWithRelations> {
     const rule = await this.findRuleOrThrow(id);
     this.checkOwnership(rule.userId, userId);
     return rule;
   }
 
-  async createRecurringRule(userId: number, dto: CreateRecurringRuleDto) {
+  async createRecurringRule(
+    userId: number,
+    dto: ICreateRecurringRule,
+  ): Promise<RecurringRuleWithRelations> {
     await this.verifyCategoryOwnership(dto.categoryId, userId);
     if (dto.bankAccountId) {
       await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
@@ -107,8 +103,8 @@ export class RecurringService {
   async updateRecurringRule(
     id: number,
     userId: number,
-    dto: UpdateRecurringRuleDto,
-  ) {
+    dto: IUpdateRecurringRule,
+  ): Promise<RecurringRuleWithRelations> {
     const rule = await this.findRuleOrThrow(id);
     this.checkOwnership(rule.userId, userId);
 
@@ -134,7 +130,10 @@ export class RecurringService {
     });
   }
 
-  async deleteRecurringRule(id: number, userId: number) {
+  async deleteRecurringRule(
+    id: number,
+    userId: number,
+  ): Promise<{ message: string }> {
     const rule = await this.findRuleOrThrow(id);
     this.checkOwnership(rule.userId, userId);
     await this.prisma.recurringRule.delete({ where: { id } });
@@ -156,10 +155,7 @@ export class RecurringService {
     let generated = 0;
 
     for (const rule of rules) {
-      // Se la regola non è ancora iniziata, skip
       if (rule.startDate > today) continue;
-
-      // Se la regola è scaduta, skip
       if (rule.endDate && rule.endDate < today) continue;
 
       const fromDate = rule.lastGeneratedDate
@@ -170,10 +166,9 @@ export class RecurringService {
 
       if (dueDates.length === 0) continue;
 
-      // Crea le transazioni mancanti in una singola query batch
-      await this.prisma.transaction.createMany({
-        data: dueDates.map((date) => ({
-          money: rule.amount,
+      const count = await this.transactionCore.createMany(
+        dueDates.map((date) => ({
+          amount: rule.amount,
           date,
           description: rule.description,
           note: rule.note,
@@ -184,15 +179,14 @@ export class RecurringService {
               : TransactionType.EXPENSE,
           userId,
           categoryId: rule.categoryId,
-          bankAccountId: rule.bankAccountId,
-          cardAccountId: rule.cardAccountId,
+          bankAccountId: rule.bankAccountId ?? undefined,
+          cardAccountId: rule.cardAccountId ?? undefined,
           recurringRuleId: rule.id,
         })),
-      });
+      );
 
-      generated += dueDates.length;
+      generated += count;
 
-      // Aggiorna lastGeneratedDate all'ultima data generata
       await this.prisma.recurringRule.update({
         where: { id: rule.id },
         data: { lastGeneratedDate: dueDates[dueDates.length - 1] },
@@ -265,7 +259,9 @@ export class RecurringService {
 
   // ─── Ownership helpers ─────────────────────────────────────────────────────
 
-  private async findRuleOrThrow(id: number) {
+  private async findRuleOrThrow(
+    id: number,
+  ): Promise<RecurringRuleWithRelations> {
     const rule = await this.prisma.recurringRule.findUnique({
       where: { id },
       include: RECURRING_RULE_INCLUDE,
@@ -281,13 +277,16 @@ export class RecurringService {
   private checkOwnership(
     resourceUserId: number | null | undefined,
     requestUserId: number,
-  ) {
+  ): void {
     if (resourceUserId !== requestUserId) {
       throw new ForbiddenException('You do not have access to this resource');
     }
   }
 
-  private async verifyCategoryOwnership(categoryId: number, userId: number) {
+  private async verifyCategoryOwnership(
+    categoryId: number,
+    userId: number,
+  ): Promise<void> {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId },
     });
@@ -302,7 +301,7 @@ export class RecurringService {
   private async verifyBankAccountOwnership(
     bankAccountId: number,
     userId: number,
-  ) {
+  ): Promise<void> {
     const account = await this.prisma.bankAccount.findUnique({
       where: { id: bankAccountId },
     });
@@ -321,7 +320,7 @@ export class RecurringService {
   private async verifyCardAccountOwnership(
     cardAccountId: number,
     userId: number,
-  ) {
+  ): Promise<void> {
     const card = await this.prisma.cardAccount.findUnique({
       where: { id: cardAccountId },
     });

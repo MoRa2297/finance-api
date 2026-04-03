@@ -78,9 +78,7 @@ export class TransactionController {
   }
 
   @Delete(':id')
-  @ApiOperation({
-    summary: 'Delete a transaction (or both legs of a transfer)',
-  })
+  @ApiOperation({ summary: 'Delete a transaction or transfer' })
   deleteTransaction(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserPayload,
