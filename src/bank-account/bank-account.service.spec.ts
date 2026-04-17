@@ -36,7 +36,12 @@ describe('BankAccountService', () => {
       expect(result).toEqual([mockBankAccount]);
       expect(mockPrismaService.bankAccount.findMany).toHaveBeenCalledWith({
         where: { userId: 1 },
-        orderBy: { createdDate: 'desc' },
+        orderBy: { createdDate: 'asc' },
+        include: {
+          bankType: true,
+          bankAccountType: true,
+          color: true,
+        },
       });
     });
 
@@ -115,6 +120,11 @@ describe('BankAccountService', () => {
           colorId: createBankAccountDto.colorId,
           bankTypeId: createBankAccountDto.bankTypeId,
           bankAccountTypeId: createBankAccountDto.bankAccountTypeId,
+        },
+        include: {
+          bankType: true,
+          bankAccountType: true,
+          color: true,
         },
       });
     });

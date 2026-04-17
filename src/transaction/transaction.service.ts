@@ -2,149 +2,313 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { RecurringType, TransactionType } from '@prisma/client';
 import { PrismaService } from '@prisma-client/prisma.service';
+import { FilterTransactionDto } from './dto';
 import {
-  CreateTransactionDto,
-  UpdateTransactionDto,
-  FilterTransactionDto,
-} from './dto';
-
-const TRANSACTION_INCLUDE = {
-  category: {
-    include: {
-      categoryIcon: true,
-      categoryColor: true,
-    },
-  },
-  bankAccount: {
-    include: {
-      bankType: true,
-    },
-  },
-  card: true,
-};
+  ICreateTransaction,
+  ICreateTransfer,
+  IUpdateTransaction,
+} from './interfaces';
+import { TransactionCoreService } from '@transaction-core/transaction-core.service';
+import { RecurringService } from '@recurring/recurring.service';
+import { TransactionWithRelations } from '@transaction-core/types';
 
 @Injectable()
 export class TransactionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly transactionCore: TransactionCoreService,
+    private readonly recurringService: RecurringService,
+  ) {}
+
+  // ─── Queries ───────────────────────────────────────────────────────────────
 
   async getTransactions(userId: number, filters: FilterTransactionDto) {
-    const { month, year, categoryId, type, bankAccountId, cardAccountId } =
-      filters;
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const skip = (page - 1) * limit;
-
-    const where: any = { userId };
-
-    if (type) where.type = type;
-    if (categoryId) where.categoryId = categoryId;
-    if (bankAccountId) where.bankAccountId = bankAccountId;
-    if (cardAccountId) where.cardAccountId = cardAccountId;
-
-    if (month && year) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0);
-      where.date = { gte: startDate, lte: endDate };
-    } else if (year) {
-      const startDate = new Date(year, 0, 1);
-      const endDate = new Date(year, 11, 31);
-      where.date = { gte: startDate, lte: endDate };
-    }
-
-    const [transactions, total] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where,
-        orderBy: { date: 'desc' },
-        skip,
-        take: limit,
-        include: TRANSACTION_INCLUDE,
-      }),
-      this.prisma.transaction.count({ where }),
-    ]);
-
-    return {
-      data: transactions,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return this.transactionCore.findMany({ userId, ...filters });
   }
 
-  async getTransaction(id: number, userId: number) {
+  async getTransaction(
+    id: number,
+    userId: number,
+  ): Promise<TransactionWithRelations> {
     const transaction = await this.findTransactionOrThrow(id);
     this.checkOwnership(transaction.userId, userId);
     return transaction;
   }
 
-  async createTransaction(userId: number, dto: CreateTransactionDto) {
-    await this.verifyCategoryOwnership(dto.categoryId, userId);
-    if (dto.bankAccountId)
-      await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
-    if (dto.cardAccountId)
-      await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+  // ─── Mutations ─────────────────────────────────────────────────────────────
 
-    return this.prisma.transaction.create({
-      data: {
-        money: dto.money,
-        recived: dto.recived,
+  async createTransaction(
+    userId: number,
+    dto: ICreateTransaction,
+  ): Promise<TransactionWithRelations> {
+    if (dto.type === TransactionType.TRANSFER) {
+      throw new BadRequestException(
+        'Use POST /transactions/transfer to create a transfer',
+      );
+    }
+
+    if (dto.categoryId) {
+      await this.verifyCategoryOwnership(dto.categoryId, userId);
+    }
+    if (dto.bankAccountId) {
+      await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
+    }
+    if (dto.cardAccountId) {
+      await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    }
+
+    if (dto.recurrent) {
+      if (!dto.frequency) {
+        throw new BadRequestException(
+          'frequency is required when recurrent is true',
+        );
+      }
+
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.amount,
+        type:
+          dto.type === TransactionType.INCOME
+            ? RecurringType.INCOME
+            : RecurringType.EXPENSE,
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note,
+        categoryId: dto.categoryId,
+        bankAccountId: dto.bankAccountId,
+        cardAccountId: dto.cardAccountId,
+      });
+
+      return this.transactionCore.create({
+        amount: dto.amount,
         date: new Date(dto.date),
         description: dto.description,
-        recurrent: dto.recurrent,
-        repeat: dto.repeat,
+        recurrent: true,
         note: dto.note,
         type: dto.type,
         userId,
         categoryId: dto.categoryId,
         bankAccountId: dto.bankAccountId,
         cardAccountId: dto.cardAccountId,
-      },
-      include: TRANSACTION_INCLUDE,
+        recurringRuleId: rule.id,
+      });
+    }
+
+    return this.transactionCore.create({
+      amount: dto.amount,
+      date: new Date(dto.date),
+      description: dto.description,
+      recurrent: false,
+      note: dto.note,
+      type: dto.type,
+      userId,
+      categoryId: dto.categoryId,
+      bankAccountId: dto.bankAccountId,
+      cardAccountId: dto.cardAccountId,
+    });
+  }
+
+  async createTransfer(
+    userId: number,
+    dto: ICreateTransfer,
+  ): Promise<TransactionWithRelations> {
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException(
+        'Source and destination accounts must be different',
+      );
+    }
+
+    await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
+    await this.verifyBankAccountOwnership(dto.toAccountId, userId);
+
+    let recurringRuleId: number | undefined;
+
+    if (dto.recurrent && dto.frequency) {
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.amount,
+        type: RecurringType.TRANSFER,
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note ?? '',
+        fromAccountId: dto.fromAccountId,
+        toAccountId: dto.toAccountId,
+      });
+      recurringRuleId = rule.id;
+    }
+
+    return this.transactionCore.createTransfer({
+      amount: dto.amount,
+      date: new Date(dto.date),
+      description: dto.description,
+      note: dto.note ?? '',
+      userId,
+      fromAccountId: dto.fromAccountId,
+      toAccountId: dto.toAccountId,
+      recurringRuleId,
     });
   }
 
   async updateTransaction(
     id: number,
     userId: number,
-    dto: UpdateTransactionDto,
-  ) {
+    dto: IUpdateTransaction,
+  ): Promise<TransactionWithRelations> {
     const transaction = await this.findTransactionOrThrow(id);
+
     this.checkOwnership(transaction.userId, userId);
 
-    if (dto.categoryId)
-      await this.verifyCategoryOwnership(dto.categoryId, userId);
-    if (dto.bankAccountId)
-      await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
-    if (dto.cardAccountId)
-      await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    if (transaction.type === TransactionType.TRANSFER) {
+      throw new BadRequestException(
+        'Transfer transactions cannot be updated directly. Delete and recreate the transfer.',
+      );
+    }
 
-    return this.prisma.transaction.update({
-      where: { id },
-      data: {
-        ...dto,
-        date: dto.date ? new Date(dto.date) : undefined,
-        updateDate: new Date(),
-      },
-      include: TRANSACTION_INCLUDE,
+    if (dto.categoryId) {
+      await this.verifyCategoryOwnership(dto.categoryId, userId);
+    }
+    if (dto.bankAccountId) {
+      await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
+    }
+    if (dto.cardAccountId) {
+      await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    }
+
+    const updated = await this.transactionCore.update(id, {
+      ...dto,
+      date: dto.date ? new Date(dto.date) : undefined,
     });
+
+    return updated;
   }
 
-  async deleteTransaction(id: number, userId: number) {
+  async deleteTransaction(
+    id: number,
+    userId: number,
+  ): Promise<{ message: string }> {
     const transaction = await this.findTransactionOrThrow(id);
     this.checkOwnership(transaction.userId, userId);
-    await this.prisma.transaction.delete({ where: { id } });
+
+    if (transaction.type === TransactionType.TRANSFER) {
+      return this.deleteTransferLegs(transaction, userId);
+    }
+
+    await this.transactionCore.delete(id);
     return { message: 'Transaction deleted successfully' };
   }
 
-  private async findTransactionOrThrow(id: number) {
-    const transaction = await this.prisma.transaction.findUnique({
-      where: { id },
-      include: TRANSACTION_INCLUDE,
+  async deleteTransferByDetailId(
+    transferDetailId: number,
+    userId: number,
+  ): Promise<{ message: string }> {
+    const legs =
+      await this.transactionCore.findTransactionsByTransferDetail(
+        transferDetailId,
+      );
+
+    if (!legs.length) {
+      throw new NotFoundException(
+        `Transfer with detail id ${transferDetailId} not found`,
+      );
+    }
+
+    legs.forEach((t) => this.checkOwnership(t.userId, userId));
+
+    await this.transactionCore.deleteTransfer(transferDetailId);
+    return { message: 'Transfer deleted successfully' };
+  }
+
+  async updateTransfer(
+    transferDetailId: number,
+    userId: number,
+    dto: ICreateTransfer,
+  ): Promise<TransactionWithRelations> {
+    // Verify both legs exist and belong to user
+    const legs =
+      await this.transactionCore.findTransactionsByTransferDetail(
+        transferDetailId,
+      );
+
+    if (!legs.length) {
+      throw new NotFoundException(
+        `Transfer with detail id ${transferDetailId} not found`,
+      );
+    }
+
+    legs.forEach((t) => this.checkOwnership(t.userId, userId));
+
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException(
+        'Source and destination accounts must be different',
+      );
+    }
+
+    await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
+    await this.verifyBankAccountOwnership(dto.toAccountId, userId);
+
+    // Delete both legs atomically then recreate
+    await this.transactionCore.deleteTransfer(transferDetailId);
+
+    let recurringRuleId: number | undefined;
+
+    if (dto.recurrent && dto.frequency) {
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.amount,
+        type: RecurringType.TRANSFER,
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note ?? '',
+        fromAccountId: dto.fromAccountId,
+        toAccountId: dto.toAccountId,
+      });
+      recurringRuleId = rule.id;
+    }
+
+    return this.transactionCore.createTransfer({
+      amount: dto.amount,
+      date: new Date(dto.date),
+      description: dto.description,
+      note: dto.note ?? '',
+      userId,
+      fromAccountId: dto.fromAccountId,
+      toAccountId: dto.toAccountId,
+      recurringRuleId,
     });
+  }
+
+  // ─── Private ───────────────────────────────────────────────────────────────
+
+  private async deleteTransferLegs(
+    transaction: TransactionWithRelations,
+    userId: number,
+  ): Promise<{ message: string }> {
+    if (!transaction.transferDetailId) {
+      await this.transactionCore.delete(transaction.id);
+      return { message: 'Transaction deleted successfully' };
+    }
+
+    const linked = await this.transactionCore.findTransactionsByTransferDetail(
+      transaction.transferDetailId,
+    );
+
+    linked.forEach((t) => this.checkOwnership(t.userId, userId));
+
+    await this.transactionCore.deleteTransfer(transaction.transferDetailId);
+    return { message: 'Transfer deleted successfully' };
+  }
+
+  private async findTransactionOrThrow(
+    id: number,
+  ): Promise<TransactionWithRelations> {
+    const transaction = await this.transactionCore.findById(id);
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with id ${id} not found`);
@@ -156,49 +320,58 @@ export class TransactionService {
   private checkOwnership(
     resourceUserId: number | null | undefined,
     requestUserId: number,
-  ) {
+  ): void {
     if (resourceUserId !== requestUserId) {
       throw new ForbiddenException('You do not have access to this resource');
     }
   }
 
-  private async verifyCategoryOwnership(categoryId: number, userId: number) {
+  private async verifyCategoryOwnership(
+    categoryId: number,
+    userId: number,
+  ): Promise<void> {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId },
     });
-    if (!category)
+    if (!category) {
       throw new NotFoundException(`Category with id ${categoryId} not found`);
-    if (category.userId !== userId)
+    }
+    if (category.userId !== userId) {
       throw new ForbiddenException('You do not have access to this category');
+    }
   }
 
   private async verifyBankAccountOwnership(
     bankAccountId: number,
     userId: number,
-  ) {
+  ): Promise<void> {
     const account = await this.prisma.bankAccount.findUnique({
       where: { id: bankAccountId },
     });
-    if (!account)
+    if (!account) {
       throw new NotFoundException(
         `Bank account with id ${bankAccountId} not found`,
       );
-    if (account.userId !== userId)
+    }
+    if (account.userId !== userId) {
       throw new ForbiddenException(
         'You do not have access to this bank account',
       );
+    }
   }
 
   private async verifyCardAccountOwnership(
     cardAccountId: number,
     userId: number,
-  ) {
+  ): Promise<void> {
     const card = await this.prisma.cardAccount.findUnique({
       where: { id: cardAccountId },
     });
-    if (!card)
+    if (!card) {
       throw new NotFoundException(`Card with id ${cardAccountId} not found`);
-    if (card.userId !== userId)
+    }
+    if (card.userId !== userId) {
       throw new ForbiddenException('You do not have access to this card');
+    }
   }
 }

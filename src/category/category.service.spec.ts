@@ -39,6 +39,10 @@ describe('CategoryService', () => {
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
         where: { userId: 1 },
         orderBy: { createdDate: 'desc' },
+        include: {
+          categoryColor: true,
+          categoryIcon: true,
+        },
       });
     });
 
@@ -111,6 +115,10 @@ describe('CategoryService', () => {
           userId: 1,
           colorId: createCategoryDto.colorId,
           iconId: createCategoryDto.iconId,
+        },
+        include: {
+          categoryColor: true,
+          categoryIcon: true,
         },
       });
     });

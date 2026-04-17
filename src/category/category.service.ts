@@ -30,10 +30,11 @@ export class CategoryService {
   }
 
   async createCategory(userId: number, dto: CreateCategoryDto) {
+    console.log('dto: ": ', dto);
     return this.prisma.category.create({
       data: {
         name: dto.name,
-        type: dto.type,
+        type: dto.type, // ora CategoryType, non string
         userId,
         colorId: dto.colorId,
         iconId: dto.iconId,
@@ -48,7 +49,13 @@ export class CategoryService {
 
     return this.prisma.category.update({
       where: { id },
-      data: { ...dto, updateDate: new Date() },
+      data: {
+        name: dto.name,
+        type: dto.type,
+        colorId: dto.colorId,
+        iconId: dto.iconId,
+        updateDate: new Date(),
+      },
       include: CATEGORY_INCLUDE,
     });
   }

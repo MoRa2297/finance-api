@@ -28,7 +28,10 @@
       "@bank-account/*": ["bank-account/*"],
       "@card-account/*": ["card-account/*"],
       "@transaction/*": ["transaction/*"],
-      "@test/*": ["test/*"]
+      "@transaction-core/*": ["transaction-core/*"],
+      "@recurring/*": ["recurring/*"],
+      "@test/*": ["test/*"],
+      "@scheduler/*": ["scheduler/*"]
     }
   }
 }
