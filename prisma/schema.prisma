@@ -32,6 +32,7 @@ enum TransactionType {
 enum RecurringType {
   INCOME
   EXPENSE
+  TRANSFER
 }
 
 enum CategoryType {
@@ -134,7 +135,9 @@ model BankAccount {
   bankAccountTypeId Int?
   cardAccount       CardAccount[]
   transaction       Transaction[]
-  recurringRule     RecurringRule[]
+  recurringRule     RecurringRule[]  @relation("RecurringMain")
+  recurringFrom     RecurringRule[]  @relation("RecurringFrom")
+  recurringTo       RecurringRule[]  @relation("RecurringTo")
   transfersFrom     TransferDetail[] @relation("TransferFrom")
   transfersTo       TransferDetail[] @relation("TransferTo")
 }
@@ -198,12 +201,16 @@ model RecurringRule {
   createdDate       DateTime        @default(now())
   createdBy         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId            Int
-  category          Category        @relation(fields: [categoryId], references: [id])
-  categoryId        Int
-  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id])
+  category          Category?       @relation(fields: [categoryId], references: [id])
+  categoryId        Int?
+  bankAccount       BankAccount?    @relation("RecurringMain", fields: [bankAccountId], references: [id])
   bankAccountId     Int?
   card              CardAccount?    @relation(fields: [cardAccountId], references: [id])
   cardAccountId     Int?
+  fromAccount       BankAccount?    @relation("RecurringFrom", fields: [fromAccountId], references: [id])
+  fromAccountId     Int?
+  toAccount         BankAccount?    @relation("RecurringTo", fields: [toAccountId], references: [id])
+  toAccountId       Int?
   transactions      Transaction[]
 }
 

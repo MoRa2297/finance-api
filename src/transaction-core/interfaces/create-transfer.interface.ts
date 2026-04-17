@@ -6,4 +6,5 @@ export interface ICreateTransfer {
   userId: number;
   fromAccountId: number;
   toAccountId: number;
+  recurringRuleId?: number;
 }

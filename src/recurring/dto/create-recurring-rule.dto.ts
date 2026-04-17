@@ -71,4 +71,20 @@ export class CreateRecurringRuleDto {
   @IsInt()
   @IsOptional()
   cardAccountId?: number;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Required for TRANSFER type',
+  })
+  @IsInt()
+  @IsOptional()
+  fromAccountId?: number;
+
+  @ApiPropertyOptional({
+    example: 2,
+    description: 'Required for TRANSFER type',
+  })
+  @IsInt()
+  @IsOptional()
+  toAccountId?: number;
 }

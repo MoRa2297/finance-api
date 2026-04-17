@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Frequency, RecurringType, TransactionType } from '@prisma/client';
 import { PrismaService } from '@prisma-client/prisma.service';
@@ -11,7 +12,7 @@ import {
   RECURRING_RULE_INCLUDE,
   RecurringRuleWithRelations,
 } from './prisma-types';
-import { TransactionCoreService } from '../transaction-core/transaction-core.service';
+import { TransactionCoreService } from '@transaction-core/transaction-core.service';
 
 @Injectable()
 export class RecurringService {
@@ -71,12 +72,34 @@ export class RecurringService {
     userId: number,
     dto: ICreateRecurringRule,
   ): Promise<RecurringRuleWithRelations> {
-    await this.verifyCategoryOwnership(dto.categoryId, userId);
-    if (dto.bankAccountId) {
-      await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
-    }
-    if (dto.cardAccountId) {
-      await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+    if (dto.type === RecurringType.TRANSFER) {
+      // Validazione transfer
+      if (!dto.fromAccountId || !dto.toAccountId) {
+        throw new BadRequestException(
+          'fromAccountId and toAccountId are required for TRANSFER recurring rules',
+        );
+      }
+      if (dto.fromAccountId === dto.toAccountId) {
+        throw new BadRequestException(
+          'Source and destination accounts must be different',
+        );
+      }
+      await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
+      await this.verifyBankAccountOwnership(dto.toAccountId, userId);
+    } else {
+      // Validazione income/expense
+      if (!dto.categoryId) {
+        throw new BadRequestException(
+          'categoryId is required for INCOME and EXPENSE recurring rules',
+        );
+      }
+      await this.verifyCategoryOwnership(dto.categoryId, userId);
+      if (dto.bankAccountId) {
+        await this.verifyBankAccountOwnership(dto.bankAccountId, userId);
+      }
+      if (dto.cardAccountId) {
+        await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
+      }
     }
 
     return this.prisma.recurringRule.create({
@@ -92,9 +115,11 @@ export class RecurringService {
         note: dto.note ?? '',
         isActive: dto.isActive ?? true,
         userId,
-        categoryId: dto.categoryId,
+        categoryId: dto.categoryId ?? null,
         bankAccountId: dto.bankAccountId ?? null,
         cardAccountId: dto.cardAccountId ?? null,
+        fromAccountId: dto.fromAccountId ?? null,
+        toAccountId: dto.toAccountId ?? null,
       },
       include: RECURRING_RULE_INCLUDE,
     });
@@ -163,29 +188,31 @@ export class RecurringService {
         : rule.startDate;
 
       const dueDates = this.getDueDates(rule.frequency, fromDate, today);
-
       if (dueDates.length === 0) continue;
 
-      const count = await this.transactionCore.createMany(
-        dueDates.map((date) => ({
-          amount: rule.amount,
-          date,
-          description: rule.description,
-          note: rule.note,
-          recurrent: true,
-          type:
-            rule.type === RecurringType.INCOME
-              ? TransactionType.INCOME
-              : TransactionType.EXPENSE,
-          userId,
-          categoryId: rule.categoryId,
-          bankAccountId: rule.bankAccountId ?? undefined,
-          cardAccountId: rule.cardAccountId ?? undefined,
-          recurringRuleId: rule.id,
-        })),
-      );
-
-      generated += count;
+      if (rule.type === RecurringType.TRANSFER) {
+        await this.generateTransferInstances(rule, dueDates, userId);
+      } else {
+        const count = await this.transactionCore.createMany(
+          dueDates.map((date) => ({
+            amount: rule.amount,
+            date,
+            description: rule.description,
+            note: rule.note,
+            recurrent: true,
+            type:
+              rule.type === RecurringType.INCOME
+                ? TransactionType.INCOME
+                : TransactionType.EXPENSE,
+            userId,
+            categoryId: rule.categoryId ?? undefined,
+            bankAccountId: rule.bankAccountId ?? undefined,
+            cardAccountId: rule.cardAccountId ?? undefined,
+            recurringRuleId: rule.id,
+          })),
+        );
+        generated += count;
+      }
 
       await this.prisma.recurringRule.update({
         where: { id: rule.id },
@@ -197,6 +224,48 @@ export class RecurringService {
       generated,
       message: `Generated ${generated} transaction${generated !== 1 ? 's' : ''}`,
     };
+  }
+
+  private async generateTransferInstances(
+    rule: any,
+    dueDates: Date[],
+    userId: number,
+  ): Promise<void> {
+    for (const date of dueDates) {
+      const transferDetail = await this.prisma.transferDetail.create({
+        data: {
+          fromAccountId: rule.fromAccountId,
+          toAccountId: rule.toAccountId,
+        },
+      });
+
+      await this.transactionCore.createMany([
+        {
+          amount: rule.amount,
+          date,
+          description: rule.description,
+          note: rule.note,
+          recurrent: true,
+          type: TransactionType.TRANSFER,
+          userId,
+          bankAccountId: rule.fromAccountId,
+          recurringRuleId: rule.id,
+          transferDetailId: transferDetail.id,
+        },
+        {
+          amount: rule.amount,
+          date,
+          description: rule.description,
+          note: rule.note,
+          recurrent: true,
+          type: TransactionType.TRANSFER,
+          userId,
+          bankAccountId: rule.toAccountId,
+          recurringRuleId: rule.id,
+          transferDetailId: transferDetail.id,
+        },
+      ]);
+    }
   }
 
   // ─── Date helpers ──────────────────────────────────────────────────────────

@@ -11,7 +11,11 @@ export interface ICreateRecurringRule {
   dayOfWeek?: string;
   note?: string;
   isActive?: boolean;
-  categoryId: number;
+  // INCOME / EXPENSE
+  categoryId?: number;
   bankAccountId?: number;
   cardAccountId?: number;
+  // TRANSFER
+  fromAccountId?: number;
+  toAccountId?: number;
 }

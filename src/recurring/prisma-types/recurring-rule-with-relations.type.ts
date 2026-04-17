@@ -8,11 +8,11 @@ export const RECURRING_RULE_INCLUDE = {
     },
   },
   bankAccount: {
-    include: {
-      bankType: true,
-    },
+    include: { bankType: true },
   },
   card: true,
+  fromAccount: true,
+  toAccount: true,
 } satisfies Prisma.RecurringRuleInclude;
 
 export type RecurringRuleWithRelations = Prisma.RecurringRuleGetPayload<{

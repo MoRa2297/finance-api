@@ -25,6 +25,7 @@ registerEnumType(Frequency, {
 
 registerEnumType(RecurringType, {
   name: 'RecurringTypeEnum',
+  description: 'Recurring rule type: income, expense or transfer',
 });
 
 @InputType()
@@ -90,6 +91,16 @@ export class CreateRecurringRuleInput {
   @IsInt()
   @IsOptional()
   cardAccountId?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsInt()
+  @IsOptional()
+  fromAccountId?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsInt()
+  @IsOptional()
+  toAccountId?: number;
 }
 
 @InputType()

@@ -119,9 +119,6 @@
       "^@bank-account/(.*)$": "<rootDir>/bank-account/$1",
       "^@card-account/(.*)$": "<rootDir>/card-account/$1",
       "^@transaction/(.*)$": "<rootDir>/transaction/$1",
-      "^@transaction-core/(.*)$": "<rootDir>/transaction-core/$1",
-      "^@recurring/(.*)$": "<rootDir>/recurring/$1",
-      "^@scheduler/(.*)$": "<rootDir>/scheduler/$1",
       "^@test/(.*)$": "<rootDir>/test/$1"
     }
   }

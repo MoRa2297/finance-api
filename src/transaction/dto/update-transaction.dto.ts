@@ -14,7 +14,7 @@ export class UpdateTransactionDto {
   @ApiPropertyOptional({ example: 50.0 })
   @IsNumber()
   @IsOptional()
-  money?: number;
+  amount?: number;
 
   @ApiPropertyOptional({ example: '2026-02-19' })
   @IsDateString()

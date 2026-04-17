@@ -67,6 +67,23 @@ export class TransactionController {
     return this.transactionService.createTransfer(user.id, dto);
   }
 
+  // Static routes before dynamic :id routes to avoid collision
+  @Put('transfer/:transferDetailId')
+  @ApiOperation({
+    summary: 'Update a transfer — deletes and recreates both legs',
+  })
+  updateTransfer(
+    @Param('transferDetailId', ParseIntPipe) transferDetailId: number,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateTransferDto,
+  ) {
+    return this.transactionService.updateTransfer(
+      transferDetailId,
+      user.id,
+      dto,
+    );
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update a transaction' })
   updateTransaction(
@@ -75,6 +92,19 @@ export class TransactionController {
     @Body() dto: UpdateTransactionDto,
   ) {
     return this.transactionService.updateTransaction(id, user.id, dto);
+  }
+
+  // Must be before DELETE :id to avoid route collision
+  @Delete('transfer/:transferDetailId')
+  @ApiOperation({ summary: 'Delete both legs of a transfer atomically' })
+  deleteTransfer(
+    @Param('transferDetailId', ParseIntPipe) transferDetailId: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.transactionService.deleteTransferByDetailId(
+      transferDetailId,
+      user.id,
+    );
   }
 
   @Delete(':id')

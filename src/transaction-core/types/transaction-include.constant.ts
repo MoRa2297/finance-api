@@ -19,4 +19,10 @@ export const TRANSACTION_INCLUDE = {
       toAccount: true,
     },
   },
+  recurringRule: {
+    include: {
+      fromAccount: true,
+      toAccount: true,
+    },
+  },
 } satisfies Prisma.TransactionInclude;

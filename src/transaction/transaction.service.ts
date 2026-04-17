@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { TransactionType } from '@prisma/client';
+import { RecurringType, TransactionType } from '@prisma/client';
 import { PrismaService } from '@prisma-client/prisma.service';
 import { FilterTransactionDto } from './dto';
 import {
@@ -71,12 +71,15 @@ export class TransactionService {
       const rule = await this.recurringService.createRecurringRule(userId, {
         description: dto.description,
         amount: dto.amount,
-        type: dto.type === TransactionType.INCOME ? 'INCOME' : 'EXPENSE',
+        type:
+          dto.type === TransactionType.INCOME
+            ? RecurringType.INCOME
+            : RecurringType.EXPENSE,
         frequency: dto.frequency,
         startDate: dto.date,
         endDate: dto.recurrenceEndDate,
         note: dto.note,
-        categoryId: dto.categoryId!,
+        categoryId: dto.categoryId,
         bankAccountId: dto.bankAccountId,
         cardAccountId: dto.cardAccountId,
       });
@@ -123,6 +126,23 @@ export class TransactionService {
     await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
     await this.verifyBankAccountOwnership(dto.toAccountId, userId);
 
+    let recurringRuleId: number | undefined;
+
+    if (dto.recurrent && dto.frequency) {
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.amount,
+        type: RecurringType.TRANSFER,
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note ?? '',
+        fromAccountId: dto.fromAccountId,
+        toAccountId: dto.toAccountId,
+      });
+      recurringRuleId = rule.id;
+    }
+
     return this.transactionCore.createTransfer({
       amount: dto.amount,
       date: new Date(dto.date),
@@ -131,6 +151,7 @@ export class TransactionService {
       userId,
       fromAccountId: dto.fromAccountId,
       toAccountId: dto.toAccountId,
+      recurringRuleId,
     });
   }
 
@@ -140,6 +161,7 @@ export class TransactionService {
     dto: IUpdateTransaction,
   ): Promise<TransactionWithRelations> {
     const transaction = await this.findTransactionOrThrow(id);
+
     this.checkOwnership(transaction.userId, userId);
 
     if (transaction.type === TransactionType.TRANSFER) {
@@ -158,10 +180,12 @@ export class TransactionService {
       await this.verifyCardAccountOwnership(dto.cardAccountId, userId);
     }
 
-    return this.transactionCore.update(id, {
+    const updated = await this.transactionCore.update(id, {
       ...dto,
       date: dto.date ? new Date(dto.date) : undefined,
     });
+
+    return updated;
   }
 
   async deleteTransaction(
@@ -172,16 +196,97 @@ export class TransactionService {
     this.checkOwnership(transaction.userId, userId);
 
     if (transaction.type === TransactionType.TRANSFER) {
-      return this.deleteTransfer(transaction, userId);
+      return this.deleteTransferLegs(transaction, userId);
     }
 
     await this.transactionCore.delete(id);
     return { message: 'Transaction deleted successfully' };
   }
 
+  async deleteTransferByDetailId(
+    transferDetailId: number,
+    userId: number,
+  ): Promise<{ message: string }> {
+    const legs =
+      await this.transactionCore.findTransactionsByTransferDetail(
+        transferDetailId,
+      );
+
+    if (!legs.length) {
+      throw new NotFoundException(
+        `Transfer with detail id ${transferDetailId} not found`,
+      );
+    }
+
+    legs.forEach((t) => this.checkOwnership(t.userId, userId));
+
+    await this.transactionCore.deleteTransfer(transferDetailId);
+    return { message: 'Transfer deleted successfully' };
+  }
+
+  async updateTransfer(
+    transferDetailId: number,
+    userId: number,
+    dto: ICreateTransfer,
+  ): Promise<TransactionWithRelations> {
+    // Verify both legs exist and belong to user
+    const legs =
+      await this.transactionCore.findTransactionsByTransferDetail(
+        transferDetailId,
+      );
+
+    if (!legs.length) {
+      throw new NotFoundException(
+        `Transfer with detail id ${transferDetailId} not found`,
+      );
+    }
+
+    legs.forEach((t) => this.checkOwnership(t.userId, userId));
+
+    if (dto.fromAccountId === dto.toAccountId) {
+      throw new BadRequestException(
+        'Source and destination accounts must be different',
+      );
+    }
+
+    await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
+    await this.verifyBankAccountOwnership(dto.toAccountId, userId);
+
+    // Delete both legs atomically then recreate
+    await this.transactionCore.deleteTransfer(transferDetailId);
+
+    let recurringRuleId: number | undefined;
+
+    if (dto.recurrent && dto.frequency) {
+      const rule = await this.recurringService.createRecurringRule(userId, {
+        description: dto.description,
+        amount: dto.amount,
+        type: RecurringType.TRANSFER,
+        frequency: dto.frequency,
+        startDate: dto.date,
+        endDate: dto.recurrenceEndDate,
+        note: dto.note ?? '',
+        fromAccountId: dto.fromAccountId,
+        toAccountId: dto.toAccountId,
+      });
+      recurringRuleId = rule.id;
+    }
+
+    return this.transactionCore.createTransfer({
+      amount: dto.amount,
+      date: new Date(dto.date),
+      description: dto.description,
+      note: dto.note ?? '',
+      userId,
+      fromAccountId: dto.fromAccountId,
+      toAccountId: dto.toAccountId,
+      recurringRuleId,
+    });
+  }
+
   // ─── Private ───────────────────────────────────────────────────────────────
 
-  private async deleteTransfer(
+  private async deleteTransferLegs(
     transaction: TransactionWithRelations,
     userId: number,
   ): Promise<{ message: string }> {
