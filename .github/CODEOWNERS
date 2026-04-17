@@ -1,0 +1,22 @@
+# CODEOWNERS — Finance API
+#
+# Syntax: <pattern> <owner1> <owner2> ...
+# Owner = GitHub username (@user) or team (@org/team)
+# The last matching rule wins.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-security/customizing-your-repository/about-code-owners
+
+# Default: everything to me
+* @MoRa2297
+
+# Infra & deploy — review required
+/.github/                @MoRa2297
+/prisma/migrations/      @MoRa2297
+/prisma/schema.prisma    @MoRa2297
+Dockerfile               @MoRa2297
+docker-compose.yml       @MoRa2297
+package.json             @MoRa2297
+package-lock.json        @MoRa2297
+
+# Auth & security
+/src/auth/               @MoRa2297
+/src/common/guards/      @MoRa2297

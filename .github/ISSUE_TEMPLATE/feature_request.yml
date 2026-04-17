@@ -1,0 +1,61 @@
+name: ✨ Feature Request
+description: Propose a new feature or improvement
+title: '[FEAT] '
+labels: ['enhancement', 'triage']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: What problem does this feature solve? Why is it needed?
+      placeholder: |
+        Currently I can't filter transactions by custom date range,
+        only by single month/year.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How do you envision the feature? API/contract, request/response examples
+      placeholder: |
+        Add `from` and `to` query params (ISO date) to the
+        GET /transaction endpoint. Example:
+        GET /transaction?from=2025-01-01&to=2025-03-31
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Did you think of other solutions? Why is this one better?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - API only (no mobile impact)
+        - API + Mobile
+        - Refactor / infra only
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (self-assigned)
+      options:
+        - 🔥 High — blocking daily usage
+        - 📅 Medium — useful, to be planned
+        - 💡 Low — nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, screenshots, links to related issues

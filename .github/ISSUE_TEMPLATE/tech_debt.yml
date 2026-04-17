@@ -1,0 +1,43 @@
+name: 🛠 Tech Debt / Refactor
+description: Refactoring, internal improvements, debt to pay
+title: '[TECH] '
+labels: ['tech-debt', 'triage']
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: Current state
+      description: What's there today that's not great or could be improved?
+      placeholder: |
+        The transaction module has business logic mixed in the controller.
+        Hard to test and duplicated between REST and GraphQL resolver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed refactor
+      placeholder: |
+        Extract TransactionService with public methods, leave only
+        DTO ↔ entity transformation in controller/resolver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact / Risks
+      description: Breaking changes? Migrations? Files touched?
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated effort
+      options:
+        - S — < 2h
+        - M — half a day
+        - L — 1+ day
+        - XL — multiple days, should be split
+    validations:
+      required: true

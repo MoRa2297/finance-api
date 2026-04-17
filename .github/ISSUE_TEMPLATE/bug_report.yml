@@ -1,0 +1,72 @@
+name: 🐛 Bug Report
+description: Report a bug in the API
+title: '[BUG] '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Fill out the fields below to help reproduce the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happens? What did you expect to happen?
+      placeholder: |
+        When I call POST /transaction with ... I get 500 instead of 201.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Commands, payloads, sequence of actions
+      placeholder: |
+        1. Login with user X
+        2. POST /transaction with body { "money": 100, ... }
+        3. See error 500
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Stack trace, logs, response body
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Local (development)
+        - Railway (production)
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / Commit
+      description: SHA of the commit or tag where the bug occurs
+      placeholder: e.g. v0.3.1 or abc1234
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional notes
+      description: Anything that may help (env vars, recent changes, etc.)
