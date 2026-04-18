@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  wait-for-ci:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI checks
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-regexp: '(Lint & Format|Typecheck|Unit Tests|E2E Tests|Build)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 15
+          allowed-conclusions: success
+
+  deploy:
+    name: Deploy to Railway
+    needs: wait-for-ci
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up \
+            --service "${{ vars.RAILWAY_SERVICE_NAME }}" \
+            --detach \
+            --ci
+
+      - name: Wait for deploy to settle
+        run: sleep 45
+
+      - name: Health check
+        run: |
+          URL="${{ vars.RAILWAY_PUBLIC_URL }}/health"
+          for i in {1..12}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check OK on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: status=$STATUS, retry in 10s..."
+            sleep 10
+          done
+          echo "❌ Health check failed after 12 attempts (2min)"
+          exit 1
+
+      - name: Notify deploy failure
+        if: failure()
+        run: |
+          echo "::error::Deploy failed or healthcheck did not pass. Check Railway logs."

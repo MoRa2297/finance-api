@@ -1,98 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Finance API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![CI](https://github.com/MoRa2297/finance-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MoRa2297/finance-api/actions/workflows/ci.yml)
+[![Deploy](https://github.com/MoRa2297/finance-api/actions/workflows/deploy.yml/badge.svg)](https://github.com/MoRa2297/finance-api/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-20.x-green.svg)](https://nodejs.org)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend API for a personal finance management app. Handles transactions, categories, bank/card accounts, budgets, and recurring transactions.
 
-## Description
+Built as a portfolio project — open source, MIT licensed.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech stack
 
-## Project setup
+- **Framework:** [NestJS 11](https://nestjs.com/) (REST + GraphQL via Apollo)
+- **Database:** PostgreSQL + [Prisma 7](https://www.prisma.io/)
+- **Auth:** JWT + Passport
+- **Validation:** `class-validator` + `class-transformer`
+- **Docs:** Swagger (auto-generated, dev only)
+- **Testing:** Jest (unit + e2e)
+- **Deploy:** [Railway](https://railway.app/) — auto-deploy from `release` branch
+- **DB hosting:** [Supabase](https://supabase.com/) (production)
 
-```bash
-$ npm install
-```
+## Quick start
 
-## Compile and run the project
+### Prerequisites
+
+- Node.js 20.x
+- Docker & Docker Compose
+- npm 10+
+
+### Setup
 
 ```bash
-# development
-$ npm run start
+# Clone and install
+git clone https://github.com/MoRa2297/finance-api.git
+cd finance-api
+npm install
 
-# watch mode
-$ npm run start:dev
+# Copy env template and fill in values
+cp .env.production.example .env.development
 
-# production mode
-$ npm run start:prod
+# Start local Postgres
+npm run db:start
+
+# Run migrations and seed
+npm run db:migrate
+npm run db:seed
+
+# Start dev server
+npm run start:dev
 ```
 
-## Run tests
+The API runs on `http://localhost:3000`:
 
-```bash
-# unit tests
-$ npm run test
+- Swagger: `http://localhost:3000/api/docs`
+- GraphQL playground: `http://localhost:3000/graphql`
+- Health: `http://localhost:3000/health`
 
-# e2e tests
-$ npm run test:e2e
+## Scripts
 
-# test coverage
-$ npm run test:cov
+| Script                 | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `npm run start:dev`    | Dev server with hot reload               |
+| `npm run build`        | Production build                         |
+| `npm run lint`         | Lint with auto-fix                       |
+| `npm run lint:check`   | Lint without fix (CI mode)               |
+| `npm run format`       | Format with Prettier                     |
+| `npm run typecheck`    | `tsc --noEmit`                           |
+| `npm test`             | Unit tests                               |
+| `npm run test:e2e`     | E2E tests (requires Postgres running)    |
+| `npm run db:migrate`   | Apply Prisma migrations (dev)            |
+| `npm run db:studio`    | Open Prisma Studio                       |
+| `npm run db:seed`      | Seed database                            |
+
+Full list in [`package.json`](./package.json).
+
+## Project structure
+
+```
+src/
+├── auth/              # JWT authentication
+├── bank-account/      # Bank accounts
+├── card-account/      # Card accounts
+├── category/          # User categories
+├── common/            # Shared: guards, interceptors, filters
+├── config/            # Typed config
+├── health/            # Health + readiness endpoints
+├── lookup/            # Static lookup data (colors, icons, bank types)
+├── prisma/            # Prisma service wrapper
+├── recurring/         # Recurring transactions
+├── scheduler/         # Cron jobs
+├── test/              # Test helpers & fixtures
+├── transaction/       # Transactions (REST + GraphQL)
+└── transaction-core/  # Transaction business logic
 ```
 
-## Deployment
+## CI/CD
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- **PRs to `main`/`release`**: full CI (lint, typecheck, unit, e2e with Postgres, build)
+- **Push to `release`**: deploys to Railway after manual approval gate
+- **Security updates**: handled automatically via Dependabot
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Full setup details in [CICD.md](./CICD.md).
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+## Documentation
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- [CICD.md](./CICD.md) — CI/CD setup and workflows
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — how to contribute
+- [SECURITY.md](./SECURITY.md) — how to report vulnerabilities
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — community guidelines
 
-## Resources
+## Contributing
 
-Check out a few resources that may come in handy when working with NestJS:
+External contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow, coding standards, and PR process.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+All PRs require approval from [@MoRa2297](https://github.com/MoRa2297).
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+[MIT](./LICENSE) © 2026 Manuel Rossi ([@MoRa2297](https://github.com/MoRa2297))

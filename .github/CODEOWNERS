@@ -1,0 +1,41 @@
+# CODEOWNERS — Finance API
+#
+# Syntax: <pattern> <owner1> <owner2> ...
+# The last matching rule wins.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-security/customizing-your-repository/about-code-owners
+#
+# This is an open source project but @MoRa2297 has final approval on all merges.
+# External contributions are welcome via PR but require owner review.
+
+# Default: everything requires owner review
+*   @MoRa2297
+
+# ─────────────────────────────────────────────────────────────
+# Critical paths — explicit ownership for clarity and auditing
+# ─────────────────────────────────────────────────────────────
+
+# CI/CD and repo governance
+/.github/                     @MoRa2297
+
+# Dependencies (supply chain)
+/package.json                 @MoRa2297
+/package-lock.json            @MoRa2297
+
+# Database schema and migrations
+/prisma/schema.prisma         @MoRa2297
+/prisma/migrations/           @MoRa2297
+
+# Authentication and security-sensitive code
+/src/auth/                    @MoRa2297
+/src/common/guards/           @MoRa2297
+/src/common/decorators/       @MoRa2297
+
+# Build and deploy configuration
+/Dockerfile                   @MoRa2297
+/docker-compose.yml           @MoRa2297
+/nest-cli.json                @MoRa2297
+/tsconfig*.json               @MoRa2297
+
+# Security policy and licensing
+/SECURITY.md                  @MoRa2297
+/LICENSE                      @MoRa2297

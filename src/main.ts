@@ -1,28 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, ResponseInterceptor } from './common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port') ?? 3000;
   const nodeEnv = configService.get<string>('app.nodeEnv');
-  const corsOrigins = configService.get<string>('app.corsOrigins');
-
-  // CORS
-  app.enableCors({
-    origin:
-      nodeEnv === 'production'
-        ? corsOrigins?.split(',').map((o) => o.trim())
-        : '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  });
+  const isProduction = nodeEnv === 'production';
 
   // Global validation
   app.useGlobalPipes(
@@ -39,8 +29,8 @@ async function bootstrap() {
   // Global response interceptor
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  // Swagger — development only
-  if (nodeEnv !== 'production') {
+  // Swagger — solo in development
+  if (!isProduction) {
     const config = new DocumentBuilder()
       .setTitle('Finance API')
       .setDescription('Personal Finance API documentation')
@@ -52,12 +42,14 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  await app.listen(port);
-  console.log(`🚀 Server running on port ${port}`);
+  // 0.0.0.0 obbligatorio su Railway/container per accettare connessioni esterne
+  await app.listen(port, '0.0.0.0');
 
-  if (nodeEnv !== 'production') {
-    console.log(`📖 Docs available at http://localhost:${port}/api/docs`);
-    console.log(`🔮 GraphQL Playground at http://localhost:${port}/graphql`);
+  if (isProduction) {
+    logger.log(`🚀 Server running on port ${port}`);
+  } else {
+    logger.log(`🚀 Server running on http://localhost:${port}`);
+    logger.log(`📖 Docs available at http://localhost:${port}/api/docs`);
   }
 }
 
