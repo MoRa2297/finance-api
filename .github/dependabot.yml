@@ -1,0 +1,45 @@
+# Dependabot configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Strategy: security updates only.
+# Dependabot security updates (triggered by CVEs in the GitHub Advisory Database)
+# are enabled by default via Settings → Security → Dependabot alerts.
+# This file configures additional version-update behavior — here intentionally
+# minimal to avoid noise from routine dependency bumps.
+#
+# If you later want routine bumps, add a second entry with
+# `schedule: { interval: "weekly" }` and `open-pull-requests-limit: 5+`.
+
+version: 2
+updates:
+  # npm dependencies — security updates only
+  - package-ecosystem: 'npm'
+    directory: '/'
+    # Setting interval to a long value effectively disables routine PRs
+    # while keeping security-driven PRs enabled (security PRs bypass schedule).
+    schedule:
+      interval: 'monthly'
+    # Cap routine version-update PRs at 0. Security updates are NOT affected
+    # by this limit and will always be opened regardless.
+    open-pull-requests-limit: 0
+    target-branch: 'main'
+    labels:
+      - 'dependencies'
+      - 'security'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+
+  # GitHub Actions — security updates only (same logic)
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 0
+    target-branch: 'main'
+    labels:
+      - 'dependencies'
+      - 'ci'
+      - 'security'
+    commit-message:
+      prefix: 'chore(ci)'

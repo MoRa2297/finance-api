@@ -1,128 +1,120 @@
 # Finance API
 
-Personal finance management REST and GraphQL API built with NestJS, Prisma 7, and PostgreSQL.
+[![CI](https://github.com/MoRa2297/finance-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MoRa2297/finance-api/actions/workflows/ci.yml)
+[![Deploy](https://github.com/MoRa2297/finance-api/actions/workflows/deploy.yml/badge.svg)](https://github.com/MoRa2297/finance-api/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-20.x-green.svg)](https://nodejs.org)
 
-![CI](https://github.com/YOUR_USERNAME/finance-api/actions/workflows/ci.yml/badge.svg)
+Backend API for a personal finance management app. Handles transactions, categories, bank/card accounts, budgets, and recurring transactions.
 
-## Tech Stack
+Built as a portfolio project — open source, MIT licensed.
 
-- **Framework**: NestJS
-- **Database**: PostgreSQL (Supabase in production)
-- **ORM**: Prisma 7
-- **Auth**: JWT with Passport
-- **API**: REST + GraphQL (Apollo)
-- **Testing**: Jest with coverage reporting
-- **Deploy**: Railway (auto-deploy from `release` branch)
+## Tech stack
 
-## Architecture
-```
-src/
-├── auth/          # Authentication (register, login, profile)
-├── lookup/        # Static data (colors, icons, bank types)
-├── category/      # User categories with ownership
-├── bank-account/  # Bank accounts with ownership
-├── card-account/  # Card accounts with ownership
-├── transaction/   # Transactions with filters and pagination
-├── health/        # Health check endpoint
-├── common/        # Guards, decorators, filters, interceptors
-├── config/        # Typed configuration
-└── prisma/        # Database service
-```
+- **Framework:** [NestJS 11](https://nestjs.com/) (REST + GraphQL via Apollo)
+- **Database:** PostgreSQL + [Prisma 7](https://www.prisma.io/)
+- **Auth:** JWT + Passport
+- **Validation:** `class-validator` + `class-transformer`
+- **Docs:** Swagger (auto-generated, dev only)
+- **Testing:** Jest (unit + e2e)
+- **Deploy:** [Railway](https://railway.app/) — auto-deploy from `release` branch
+- **DB hosting:** [Supabase](https://supabase.com/) (production)
 
-## Getting Started
+## Quick start
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker (for local PostgreSQL)
+- Node.js 20.x
+- Docker & Docker Compose
+- npm 10+
 
-### Installation
+### Setup
+
 ```bash
+# Clone and install
+git clone https://github.com/MoRa2297/finance-api.git
+cd finance-api
 npm install
-```
 
-### Environment Variables
+# Copy env template and fill in values
+cp .env.production.example .env.development
 
-Copy `.env.production.example` to `.env` and fill in the values:
-```bash
-cp .env.production.example .env
-```
-
-### Database
-```bash
-# Start local PostgreSQL
+# Start local Postgres
 npm run db:start
 
-# Push schema
-npm run db:push
-
-# Seed database
+# Run migrations and seed
+npm run db:migrate
 npm run db:seed
-```
 
-### Running
-```bash
-# Development
+# Start dev server
 npm run start:dev
-
-# Production
-npm run start:prod
 ```
 
-### Testing
-```bash
-# Run tests with coverage
-npm run test
+The API runs on `http://localhost:3000`:
+
+- Swagger: `http://localhost:3000/api/docs`
+- GraphQL playground: `http://localhost:3000/graphql`
+- Health: `http://localhost:3000/health`
+
+## Scripts
+
+| Script                 | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `npm run start:dev`    | Dev server with hot reload               |
+| `npm run build`        | Production build                         |
+| `npm run lint`         | Lint with auto-fix                       |
+| `npm run lint:check`   | Lint without fix (CI mode)               |
+| `npm run format`       | Format with Prettier                     |
+| `npm run typecheck`    | `tsc --noEmit`                           |
+| `npm test`             | Unit tests                               |
+| `npm run test:e2e`     | E2E tests (requires Postgres running)    |
+| `npm run db:migrate`   | Apply Prisma migrations (dev)            |
+| `npm run db:studio`    | Open Prisma Studio                       |
+| `npm run db:seed`      | Seed database                            |
+
+Full list in [`package.json`](./package.json).
+
+## Project structure
+
+```
+src/
+├── auth/              # JWT authentication
+├── bank-account/      # Bank accounts
+├── card-account/      # Card accounts
+├── category/          # User categories
+├── common/            # Shared: guards, interceptors, filters
+├── config/            # Typed config
+├── health/            # Health + readiness endpoints
+├── lookup/            # Static lookup data (colors, icons, bank types)
+├── prisma/            # Prisma service wrapper
+├── recurring/         # Recurring transactions
+├── scheduler/         # Cron jobs
+├── test/              # Test helpers & fixtures
+├── transaction/       # Transactions (REST + GraphQL)
+└── transaction-core/  # Transaction business logic
 ```
 
-## API Documentation
+## CI/CD
 
-- **Swagger**: `http://localhost:3000/api/docs` (development only)
-- **GraphQL Playground**: `http://localhost:3000/graphql` (development only)
+- **PRs to `main`/`release`**: full CI (lint, typecheck, unit, e2e with Postgres, build)
+- **Push to `release`**: deploys to Railway after manual approval gate
+- **Security updates**: handled automatically via Dependabot
 
-## Endpoints
+Full setup details in [CICD.md](./CICD.md).
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | /auth/register | Register new user | ❌ |
-| POST | /auth/login | Login | ❌ |
-| GET | /auth/me | Get current user | ✅ |
-| PUT | /auth/profile | Update profile | ✅ |
-| PUT | /auth/change-password | Change password | ✅ |
-| DELETE | /auth/profile | Delete account | ✅ |
-| GET | /lookup/colors | Get all colors | ✅ |
-| GET | /lookup/category-icons | Get all icons | ✅ |
-| GET | /lookup/bank-types | Get all bank types | ✅ |
-| GET | /lookup/bank-account-types | Get all account types | ✅ |
-| GET | /lookup/card-types | Get all card types | ✅ |
-| GET | /categories | Get user categories | ✅ |
-| POST | /categories | Create category | ✅ |
-| GET | /categories/:id | Get category | ✅ |
-| PUT | /categories/:id | Update category | ✅ |
-| DELETE | /categories/:id | Delete category | ✅ |
-| GET | /bank-accounts | Get user bank accounts | ✅ |
-| POST | /bank-accounts | Create bank account | ✅ |
-| GET | /bank-accounts/:id | Get bank account | ✅ |
-| PUT | /bank-accounts/:id | Update bank account | ✅ |
-| DELETE | /bank-accounts/:id | Delete bank account | ✅ |
-| GET | /cards | Get user cards | ✅ |
-| POST | /cards | Create card | ✅ |
-| GET | /cards/:id | Get card | ✅ |
-| PUT | /cards/:id | Update card | ✅ |
-| DELETE | /cards/:id | Delete card | ✅ |
-| GET | /transactions | Get transactions (filtered) | ✅ |
-| POST | /transactions | Create transaction | ✅ |
-| GET | /transactions/:id | Get transaction | ✅ |
-| PUT | /transactions/:id | Update transaction | ✅ |
-| DELETE | /transactions/:id | Delete transaction | ✅ |
-| GET | /health | Health check | ❌ |
+## Documentation
 
-## Git Workflow
-```
-main    → active development
-release → production (auto-deploy to Railway)
-```
+- [CICD.md](./CICD.md) — CI/CD setup and workflows
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — how to contribute
+- [SECURITY.md](./SECURITY.md) — how to report vulnerabilities
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — community guidelines
+
+## Contributing
+
+External contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow, coding standards, and PR process.
+
+All PRs require approval from [@MoRa2297](https://github.com/MoRa2297).
 
 ## License
 
-MIT
+[MIT](./LICENSE) © 2026 Manuel Rossi ([@MoRa2297](https://github.com/MoRa2297))
