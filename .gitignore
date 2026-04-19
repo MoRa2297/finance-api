@@ -7,8 +7,9 @@ dist
 
 # Environment
 .env
-.env.*
-!.env.example
+.env.development
+.env.production
+!.env.*.example
 
 # IDE
 .idea
