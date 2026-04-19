@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { Server } from 'http';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { HttpExceptionFilter, ResponseInterceptor } from '../src/common';
 
 describe('Health (e2e)', () => {
   let app: INestApplication;
+  let server: Server;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -14,7 +16,6 @@ describe('Health (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
 
-    // Match main.ts setup so tests hit the same pipeline as production
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -26,6 +27,7 @@ describe('Health (e2e)', () => {
     app.useGlobalInterceptors(new ResponseInterceptor());
 
     await app.init();
+    server = app.getHttpServer() as Server;
   });
 
   afterAll(async () => {
@@ -34,9 +36,7 @@ describe('Health (e2e)', () => {
 
   describe('GET /health', () => {
     it('should return 200 with status ok', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/health')
-        .expect(200);
+      const response = await request(server).get('/health').expect(200);
 
       expect(response.body).toHaveProperty('data');
       expect(response.body.data).toHaveProperty('status', 'ok');
@@ -48,9 +48,7 @@ describe('Health (e2e)', () => {
 
   describe('GET /health/ready', () => {
     it('should return 200 when DB is reachable', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/health/ready')
-        .expect(200);
+      const response = await request(server).get('/health/ready').expect(200);
 
       expect(response.body.data).toHaveProperty('status', 'ok');
       expect(response.body.data.checks).toHaveProperty('database');
