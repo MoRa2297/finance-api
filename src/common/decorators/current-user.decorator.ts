@@ -1,26 +1,35 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { Request } from 'express';
 
 export interface JwtPayload {
-    sub: number;
-    iat?: number;
-    exp?: number;
+  sub: number;
+  iat?: number;
+  exp?: number;
 }
 
 export interface CurrentUserPayload {
-    id: number;
+  id: number;
+}
+
+interface RequestWithUser extends Request {
+  user: CurrentUserPayload;
+}
+
+interface GqlContext {
+  req: RequestWithUser;
 }
 
 export const CurrentUser = createParamDecorator(
-    (data: unknown, context: ExecutionContext): CurrentUserPayload => {
-        const contextType = context.getType<'http' | 'graphql'>();
+  (_data: unknown, context: ExecutionContext): CurrentUserPayload => {
+    const contextType = context.getType<'http' | 'graphql'>();
 
-        if (contextType === 'graphql') {
-            const ctx = GqlExecutionContext.create(context);
-            return ctx.getContext().req.user as CurrentUserPayload;
-        }
+    if (contextType === 'graphql') {
+      const ctx = GqlExecutionContext.create(context);
+      return ctx.getContext<GqlContext>().req.user;
+    }
 
-        const request = context.switchToHttp().getRequest();
-        return request.user as CurrentUserPayload;
-    },
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    return request.user;
+  },
 );

@@ -22,6 +22,8 @@ export const mockRecurringRule = {
   category: null,
   bankAccount: null,
   card: null,
+  fromAccountId: null,
+  toAccountId: null,
 };
 
 export const mockRecurringRuleWithRelations = {
@@ -66,6 +68,10 @@ export const mockRecurringRuleWithRelations = {
     createdDate: new Date('2026-01-01'),
     updateDate: new Date('2026-01-01'),
   },
+  fromAccountId: null,
+  toAccountId: null,
+  fromAccount: null,
+  toAccount: null,
 };
 
 export const createRecurringRuleDto = {

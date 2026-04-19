@@ -5,9 +5,9 @@ import { BankAccountResolver } from './bank-account.resolver';
 import { PrismaModule } from '@prisma-client/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [BankAccountController],
-    providers: [BankAccountService, BankAccountResolver],
-    exports: [BankAccountService],
+  imports: [PrismaModule],
+  controllers: [BankAccountController],
+  providers: [BankAccountService, BankAccountResolver],
+  exports: [BankAccountService],
 })
 export class BankAccountModule {}

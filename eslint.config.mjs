@@ -29,7 +29,29 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    },
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // Test files — relaxed rules.
+  // `unbound-method` is a false positive with Jest's jest.fn() mocks.
+  // `unsafe-assignment` is acceptable on inline mock data where full
+  // Prisma typing would add noise without catching real bugs.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    files: ['**/*.spec.ts', '**/*.test.ts', 'src/test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
     },
   },
 );

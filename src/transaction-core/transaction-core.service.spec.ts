@@ -8,6 +8,17 @@ import {
 } from '@test/fixtures';
 import { TransactionType } from '@prisma/client';
 
+interface CreateTransactionInput {
+  amount: number;
+  date: Date;
+  description: string;
+  note: string;
+  recurrent: boolean;
+  type: TransactionType;
+  userId: number;
+  categoryId: number;
+}
+
 describe('TransactionCoreService', () => {
   let service: TransactionCoreService;
 
@@ -32,7 +43,11 @@ describe('TransactionCoreService', () => {
       ]);
       mockPrismaService.transaction.count.mockResolvedValue(1);
 
-      const result = await service.findMany({ userId: 1, page: 1, limit: 20 });
+      const result = await service.findMany({
+        userId: 1,
+        page: 1,
+        limit: 20,
+      });
 
       expect(result.data).toEqual([mockTransactionWithRelations]);
       expect(result.meta.total).toBe(1);
@@ -49,8 +64,8 @@ describe('TransactionCoreService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             date: expect.objectContaining({
-              gte: expect.any(Date),
-              lte: expect.any(Date),
+              gte: expect.any(Date) as Date,
+              lte: expect.any(Date) as Date,
             }),
           }),
         }),
@@ -79,7 +94,11 @@ describe('TransactionCoreService', () => {
       mockPrismaService.transaction.findMany.mockResolvedValue([]);
       mockPrismaService.transaction.count.mockResolvedValue(45);
 
-      const result = await service.findMany({ userId: 1, page: 1, limit: 20 });
+      const result = await service.findMany({
+        userId: 1,
+        page: 1,
+        limit: 20,
+      });
 
       expect(result.meta.totalPages).toBe(3);
     });
@@ -136,9 +155,11 @@ describe('TransactionCoreService', () => {
 
   describe('createMany', () => {
     it('should create multiple transactions and return count', async () => {
-      mockPrismaService.transaction.createMany.mockResolvedValue({ count: 3 });
+      mockPrismaService.transaction.createMany.mockResolvedValue({
+        count: 3,
+      });
 
-      const result = await service.createMany([
+      const transactions: CreateTransactionInput[] = [
         {
           amount: 15.99,
           date: new Date('2026-01-01'),
@@ -169,7 +190,9 @@ describe('TransactionCoreService', () => {
           userId: 1,
           categoryId: 1,
         },
-      ]);
+      ];
+
+      const result = await service.createMany(transactions);
 
       expect(result).toBe(3);
     });

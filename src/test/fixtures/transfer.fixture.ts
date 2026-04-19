@@ -1,5 +1,3 @@
-import { TransactionType } from '@prisma/client';
-
 export const mockTransferDetail = {
   id: 1,
   fromAccountId: 1,

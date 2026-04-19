@@ -14,8 +14,8 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@common/*": ["common/*"],
@@ -30,8 +30,9 @@
       "@transaction/*": ["transaction/*"],
       "@transaction-core/*": ["transaction-core/*"],
       "@recurring/*": ["recurring/*"],
-      "@test/*": ["test/*"],
-      "@scheduler/*": ["scheduler/*"]
+      "@scheduler/*": ["scheduler/*"],
+      "@health/*": ["health/*"],
+      "@test/*": ["test/*"]
     }
   }
 }
