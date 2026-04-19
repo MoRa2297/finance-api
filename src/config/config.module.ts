@@ -8,7 +8,7 @@ import appConfig from '@config/app.config';
     NestConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, jwtConfig, databaseConfig],
-      envFilePath: '.env',
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
     }),
   ],
   exports: [NestConfigModule],
