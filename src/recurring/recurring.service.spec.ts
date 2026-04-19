@@ -12,7 +12,7 @@ import {
   mockCategory,
   mockBankAccount,
 } from '@test/fixtures';
-import { Frequency, RecurringType, TransactionType } from '@prisma/client';
+import { Frequency, RecurringRule, RecurringType } from '@prisma/client';
 
 const mockTransactionCoreService = {
   createMany: jest.fn(),
@@ -46,7 +46,10 @@ describe('RecurringService', () => {
       ]);
       mockPrismaService.recurringRule.count.mockResolvedValue(1);
 
-      const result = await service.getRecurringRules(1, { page: 1, limit: 20 });
+      const result = await service.getRecurringRules(1, {
+        page: 1,
+        limit: 20,
+      });
 
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
@@ -96,10 +99,13 @@ describe('RecurringService', () => {
     });
 
     it('should throw ForbiddenException if rule belongs to another user', async () => {
-      mockPrismaService.recurringRule.findUnique.mockResolvedValue({
-        ...mockRecurringRuleWithRelations,
+      const otherUserRule: RecurringRule = {
+        ...(mockRecurringRuleWithRelations as RecurringRule),
         userId: 2,
-      });
+      };
+      mockPrismaService.recurringRule.findUnique.mockResolvedValue(
+        otherUserRule,
+      );
 
       await expect(service.getRecurringRule(1, 1)).rejects.toThrow(
         ForbiddenException,
@@ -209,7 +215,7 @@ describe('RecurringService', () => {
 
       mockPrismaService.recurringRule.findMany.mockResolvedValue([
         {
-          ...mockRecurringRule,
+          ...(mockRecurringRule as RecurringRule),
           startDate,
           lastGeneratedDate: null,
           frequency: Frequency.MONTHLY,
@@ -231,7 +237,7 @@ describe('RecurringService', () => {
       futureDate.setMonth(futureDate.getMonth() + 1);
 
       mockPrismaService.recurringRule.findMany.mockResolvedValue([
-        { ...mockRecurringRule, startDate: futureDate },
+        { ...(mockRecurringRule as RecurringRule), startDate: futureDate },
       ]);
 
       const result = await service.generateDueTransactions(1);
@@ -248,7 +254,7 @@ describe('RecurringService', () => {
 
       mockPrismaService.recurringRule.findMany.mockResolvedValue([
         {
-          ...mockRecurringRule,
+          ...(mockRecurringRule as RecurringRule),
           startDate: pastDate,
           endDate: expiredDate,
         },
@@ -266,7 +272,7 @@ describe('RecurringService', () => {
 
       mockPrismaService.recurringRule.findMany.mockResolvedValue([
         {
-          ...mockRecurringRule,
+          ...(mockRecurringRule as RecurringRule),
           startDate: yesterday,
           lastGeneratedDate: null,
           frequency: Frequency.DAILY,

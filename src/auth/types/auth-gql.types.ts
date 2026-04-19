@@ -2,48 +2,48 @@ import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class UserType {
-    @Field(() => Int)
-    id: number;
+  @Field(() => Int)
+  id: number;
 
-    @Field()
-    email: string;
+  @Field()
+  email: string;
 
-    @Field({ nullable: true })
-    name?: string;
+  @Field(() => String, { nullable: true })
+  name: string | null;
 
-    @Field({ nullable: true })
-    surname?: string;
+  @Field(() => String, { nullable: true })
+  surname: string | null;
 
-    @Field({ nullable: true })
-    birthDate?: Date;
+  @Field(() => Date, { nullable: true })
+  birthDate: Date | null;
 
-    @Field({ nullable: true })
-    sex?: string;
+  @Field(() => String, { nullable: true })
+  sex: string | null;
 
-    @Field({ nullable: true })
-    imageUrl?: string;
+  @Field(() => String, { nullable: true })
+  imageUrl: string | null;
 
-    @Field()
-    acceptedTerms: boolean;
+  @Field()
+  acceptedTerms: boolean;
 
-    @Field()
-    createdDate: Date;
+  @Field()
+  createdDate: Date;
 
-    @Field()
-    updateDate: Date;
+  @Field()
+  updateDate: Date;
 }
 
 @ObjectType()
 export class AuthType {
-    @Field()
-    accessToken: string;
+  @Field()
+  accessToken: string;
 
-    @Field(() => UserType)
-    user: UserType;
+  @Field(() => UserType)
+  user: UserType;
 }
 
 @ObjectType()
 export class MessageType {
-    @Field()
-    message: string;
+  @Field()
+  message: string;
 }

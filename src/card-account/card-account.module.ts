@@ -5,9 +5,9 @@ import { CardAccountResolver } from './card-account.resolver';
 import { PrismaModule } from '@prisma-client/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [CardAccountController],
-    providers: [CardAccountService, CardAccountResolver],
-    exports: [CardAccountService],
+  imports: [PrismaModule],
+  controllers: [CardAccountController],
+  providers: [CardAccountService, CardAccountResolver],
+  exports: [CardAccountService],
 })
 export class CardAccountModule {}

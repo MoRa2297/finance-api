@@ -29,7 +29,7 @@ async function bootstrap() {
   // Global response interceptor
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  // Swagger — solo in development
+  // Swagger — development only
   if (!isProduction) {
     const config = new DocumentBuilder()
       .setTitle('Finance API')
@@ -42,7 +42,7 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  // 0.0.0.0 obbligatorio su Railway/container per accettare connessioni esterne
+  // 0.0.0.0 is required on Railway/containers to accept external connections
   await app.listen(port, '0.0.0.0');
 
   if (isProduction) {
@@ -53,4 +53,4 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+void bootstrap();

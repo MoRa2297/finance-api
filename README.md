@@ -117,4 +117,4 @@ All PRs require approval from [@MoRa2297](https://github.com/MoRa2297).
 
 ## License
 
-[MIT](./LICENSE) © 2026 Manuel Rossi ([@MoRa2297](https://github.com/MoRa2297))
+[MIT](./LICENSE) © 2026 Manuel Morandin ([@MoRa2297](https://github.com/MoRa2297))

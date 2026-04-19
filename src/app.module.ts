@@ -40,12 +40,16 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-        sortSchema: true,
-        playground: configService.get<boolean>('app.graphqlPlayground'),
-        context: ({ req }) => ({ req }),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const playground =
+          configService.get<boolean>('app.graphqlPlayground') ?? false;
+        return {
+          autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+          sortSchema: true,
+          playground,
+          context: ({ req }: { req: unknown }) => ({ req }),
+        };
+      },
       inject: [ConfigService],
     }),
     AuthModule,

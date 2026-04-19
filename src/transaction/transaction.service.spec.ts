@@ -17,9 +17,8 @@ import {
   mockBankAccount,
   mockBankAccount2,
   mockCategory,
-  mockTransferDetail,
 } from '@test/fixtures';
-import { TransactionType } from '@prisma/client';
+import { Frequency, TransactionType } from '@prisma/client';
 
 const mockTransactionCoreService = {
   findMany: jest.fn(),
@@ -182,7 +181,7 @@ describe('TransactionService', () => {
       const result = await service.createTransaction(1, {
         ...createTransactionDto,
         recurrent: true,
-        frequency: 'MONTHLY' as any,
+        frequency: Frequency.MONTHLY,
       });
 
       expect(mockRecurringService.createRecurringRule).toHaveBeenCalledTimes(1);
