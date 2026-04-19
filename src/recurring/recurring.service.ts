@@ -4,7 +4,13 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { Frequency, RecurringType, TransactionType } from '@prisma/client';
+import {
+  Frequency,
+  Prisma,
+  RecurringRule,
+  RecurringType,
+  TransactionType,
+} from '@prisma/client';
 import { PrismaService } from '@prisma-client/prisma.service';
 import { ICreateRecurringRule, IUpdateRecurringRule } from './interfaces';
 import { FilterRecurringRuleDto } from './dto';
@@ -29,7 +35,7 @@ export class RecurringService {
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: Prisma.RecurringRuleWhereInput = { userId };
 
     if (type) where.type = type;
     if (frequency) where.frequency = frequency;
@@ -73,7 +79,7 @@ export class RecurringService {
     dto: ICreateRecurringRule,
   ): Promise<RecurringRuleWithRelations> {
     if (dto.type === RecurringType.TRANSFER) {
-      // Validazione transfer
+      // Transfer validation
       if (!dto.fromAccountId || !dto.toAccountId) {
         throw new BadRequestException(
           'fromAccountId and toAccountId are required for TRANSFER recurring rules',
@@ -87,7 +93,7 @@ export class RecurringService {
       await this.verifyBankAccountOwnership(dto.fromAccountId, userId);
       await this.verifyBankAccountOwnership(dto.toAccountId, userId);
     } else {
-      // Validazione income/expense
+      // Income/expense validation
       if (!dto.categoryId) {
         throw new BadRequestException(
           'categoryId is required for INCOME and EXPENSE recurring rules',
@@ -227,15 +233,24 @@ export class RecurringService {
   }
 
   private async generateTransferInstances(
-    rule: any,
+    rule: RecurringRule,
     dueDates: Date[],
     userId: number,
   ): Promise<void> {
+    if (!rule.fromAccountId || !rule.toAccountId) {
+      throw new BadRequestException(
+        'Transfer recurring rule is missing fromAccountId or toAccountId',
+      );
+    }
+
+    const fromAccountId = rule.fromAccountId;
+    const toAccountId = rule.toAccountId;
+
     for (const date of dueDates) {
       const transferDetail = await this.prisma.transferDetail.create({
         data: {
-          fromAccountId: rule.fromAccountId,
-          toAccountId: rule.toAccountId,
+          fromAccountId,
+          toAccountId,
         },
       });
 
@@ -248,7 +263,7 @@ export class RecurringService {
           recurrent: true,
           type: TransactionType.TRANSFER,
           userId,
-          bankAccountId: rule.fromAccountId,
+          bankAccountId: fromAccountId,
           recurringRuleId: rule.id,
           transferDetailId: transferDetail.id,
         },
@@ -260,7 +275,7 @@ export class RecurringService {
           recurrent: true,
           type: TransactionType.TRANSFER,
           userId,
-          bankAccountId: rule.toAccountId,
+          bankAccountId: toAccountId,
           recurringRuleId: rule.id,
           transferDetailId: transferDetail.id,
         },

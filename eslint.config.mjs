@@ -29,7 +29,38 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    },
+  },
+  // ──────────────────────────────────────────────────────────────────────────
+  // Test files — relaxed rules.
+  // Covers unit specs (`src/**/*.spec.ts`), shared test helpers (`src/test/**`),
+  // and e2e specs in the root `test/` directory.
+  // `unbound-method` is a false positive with Jest's jest.fn() mocks.
+  // `unsafe-assignment` / `unsafe-member-access` are acceptable on response
+  // bodies and inline mock data where full typing would add noise.
+  // ──────────────────────────────────────────────────────────────────────────
+  {
+    files: [
+      '**/*.spec.ts',
+      '**/*.test.ts',
+      '**/*.e2e-spec.ts',
+      'src/test/**/*.ts',
+      'test/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
 );

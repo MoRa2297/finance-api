@@ -1,5 +1,5 @@
 export interface JwtPayload {
-    sub: number;
-    iat?: number;
-    exp?: number;
+  sub: number;
+  iat?: number;
+  exp?: number;
 }

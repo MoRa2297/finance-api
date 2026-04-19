@@ -5,5 +5,21 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@common/(.*)$": "<rootDir>/../src/common/$1",
+    "^@config/(.*)$": "<rootDir>/../src/config/$1",
+    "^@auth/(.*)$": "<rootDir>/../src/auth/$1",
+    "^@prisma-client/(.*)$": "<rootDir>/../src/prisma/$1",
+    "^@lookup/(.*)$": "<rootDir>/../src/lookup/$1",
+    "^@category/(.*)$": "<rootDir>/../src/category/$1",
+    "^@bank-account/(.*)$": "<rootDir>/../src/bank-account/$1",
+    "^@card-account/(.*)$": "<rootDir>/../src/card-account/$1",
+    "^@transaction/(.*)$": "<rootDir>/../src/transaction/$1",
+    "^@transaction-core/(.*)$": "<rootDir>/../src/transaction-core/$1",
+    "^@recurring/(.*)$": "<rootDir>/../src/recurring/$1",
+    "^@scheduler/(.*)$": "<rootDir>/../src/scheduler/$1",
+    "^@health/(.*)$": "<rootDir>/../src/health/$1",
+    "^@test/(.*)$": "<rootDir>/../src/test/$1"
   }
 }
